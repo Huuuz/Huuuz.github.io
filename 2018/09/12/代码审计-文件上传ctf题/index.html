@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/img/avatar.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="description" content="">
+  <meta name="author" content="John Doe">
+  <meta name="keywords" content="">
+  <title>代码审计_文件上传ctf题 - Hexo</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css" />
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css">
+
+
+
+  <link  rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css" />
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+<!-- 自定义样式保持在最底部 -->
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>2nH' blog</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/">首页</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/archives/">归档</a>
+          </li>
+        
+          
+          
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/tags/">标签</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/about/">关于</a>
+          </li>
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="view intro-2" id="background" false
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask rgba-black-light flex-center">
+          <div class="container text-center white-text fadeInUp">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              
+                <p class="mt-3 post-meta">
+                  <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                  星期三, 九月 12日 2018, 10:39 晚上
+                </p>
+              
+
+              <p class="mt-1">
+                
+                  
+                  <span class="post-meta">
+                    <i class="far fa-chart-bar"></i>
+                    820 字
+                  </span>
+                
+
+                
+                  
+                  <span class="post-meta">
+                      <i class="far fa-clock"></i>
+                      3 分钟
+                  </span>
+                
+
+                
+                  <!-- 不蒜子统计文章PV -->
+                  
+                  <span id="busuanzi_container_page_pv" class="post-meta" style="display: none">
+                    <i class="far fa-eye" aria-hidden="true"></i>
+                    <span id="busuanzi_value_page_pv"></span> 次
+                  </span>
+                
+              </p>
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="py-5 z-depth-3" id="board">
+        <div class="post-content mx-auto" id="post">
+          
+          <div class="markdown-body">
+            <p>网鼎杯第二场 wafUpload</p>
+<h5 id="题目"><a href="#题目" class="headerlink" title="题目"></a>题目</h5><pre><code>&lt;?phpm
+#$sandbox = &#39;/var/www/html/upload/&#39; . md5(&quot;phpIsBest&quot; . $_SERVER[&#39;REMOTE_ADDR&#39;]);
+$sandbox = &#39;&#39;;
+
+#@mkdir($sandbox);
+#@chdir($sandbox);
+
+if (!empty($_FILES[&#39;file&#39;])) {
+    #mime check
+    if (!in_array($_FILES[&#39;file&#39;][&#39;type&#39;], [&#39;image/jpeg&#39;, &#39;image/png&#39;, &#39;image/gif&#39;])) {
+        die(&#39;This type is not allowed!&#39;);
+    }else{
+        echo &quot;pass 1n&quot;;
+    }
+
+    #check filename
+    $file = empty($_POST[&#39;filename&#39;]) ? $_FILES[&#39;file&#39;][&#39;name&#39;] : $_POST[&#39;filename&#39;];
+    if (!is_array($file)) {
+        $file = explode(&#39;.&#39;, strtolower($file));
+    }
+    $ext = end($file);
+    if (!in_array($ext, [&#39;jpg&#39;, &#39;png&#39;, &#39;gif&#39;])) {
+        die(&#39;This file is not allowed!&#39;);
+    }else{
+        echo &quot;pass 2n&quot;;
+    }
+
+    $filename = reset($file) . &#39;.&#39; . $file[count($file) - 1];
+    if (move_uploaded_file($_FILES[&#39;file&#39;][&#39;tmp_name&#39;], $sandbox . &#39;/&#39; . $filename)) {
+        echo &#39;Success!&#39;;
+        echo &#39;filepath:&#39; . $sandbox . &#39;/&#39; . $filename;
+    } else {
+        echo &#39;Failed!&#39;;
+    }
+}
+show_source(__file__);
+?&gt;
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Upload Your Shell&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;form action=&quot;&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot;&gt;
+    &lt;label for=&quot;file&quot;&gt;Filename:&lt;/label&gt;
+    &lt;input type=&quot;text&quot; name=&quot;filename&quot;&gt;&lt;br&gt;
+    &lt;input type=&quot;file&quot; name=&quot;file&quot; id=&quot;file&quot; /&gt;
+    &lt;input type=&quot;submit&quot; name=&quot;submit&quot; value=&quot;Submit&quot; /&gt;
+&lt;/form&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre><h4 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h4><p>审计源码可以知道，代码中用 end 函数取到上传文件的后缀并判断，用 reset 函数返回的值作为文件名</p>
+<p>根据题目，需要绕过两层判断。</p>
+<p>1.第一层，直接抓包修改 MIME 为 image/png 就行了。</p>
+<p>2.第二层，构造 filename 字段为数组</p>
+<p>仔细看 html 代码中提供了一个 filename 字段，在下面这句代码的判断中，会先查看是否有直接 post 提交的 filename 字段，如果有的话就使用这个字段的值</p>
+<blockquote>
+<p>$file = empty($_POST[‘filename’]) ? $_FILES[‘file’][‘name’] : $_POST[‘filename’];</p>
+</blockquote>
+<p>如果没有POST该字段，$file变量取上传时的name，即** $_FILES[‘file’][‘name’] **</p>
+<p>若$file文件名不是数组，就对字符串中的点号. 进行explode分割，分割成数组<br>如上传aa.bb.php会被切为</p>
+<p>[0]  = &gt; ‘aa’</p>
+<p>[1] =&gt; ‘bb’</p>
+<p>[2] =&gt; ‘php’</p>
+<p>这样的数组</p>
+<p><strong>获取扩展名代码</strong></p>
+<blockquote>
+<p>$ext = end($file);</p>
+</blockquote>
+<p>利用了end函数，这个函数可以返回数组的最后一项。</p>
+<p>也就返回了最后的php作为$ext，再经过判断ext是否是jpg、png、gif的一种。</p>
+<h4 id="绕过"><a href="#绕过" class="headerlink" title="绕过"></a>绕过</h4><p>利用end reset函数的缺陷<br>举个例子：</p>
+<pre><code>&lt;?php
+
+$arr = array();
+
+$arr[0] = &#39;first&#39;;
+$arr[1] = &#39;second&#39;;
+$arr[2] = &#39;third&#39;;
+
+var_dump($arr);
+
+echo &quot;the result of reset: &quot;.reset($arr).&quot;n&quot;;
+
+echo &quot;the result of end: &quot;.end($arr);
+?&gt;</code></pre><p>end 函数原本的作用就是返回数组的最后一个元素，在上面看的是正常的。但是如果我们这里把对数组赋值的顺序换一下（先给 arr[2] 赋值），可以看到结果就变了。<br>继续尝试会发现 reset 函数也是一样，第一个给数组赋值的值就是 reset 函数返回的值，并不一定是arr[0]。</p>
+<p>所以构造playload</p>
+<blockquote>
+<p>filename[1] = php<br>filename[0] = png</p>
+</blockquote>
+<p>end取的是png能通过校验<br>在后面拼接 $filename 时候，再一次拼接到后缀名，即</p>
+<blockquote>
+<p>$filename = reset($file) . ‘.’ . $file[count($file) - 1];</p>
+</blockquote>
+<p>此时$file[count($file) - 1] 取到的就是$file[2-1]-&gt;$filename[1]<br>最后拼接出了 php.php，就达到了上传 shell 的目的。</p>
+<p><a href="https://www.anquanke.com/post/id/164561#h2-1" target="_blank" rel="noopener">https://www.anquanke.com/post/id/164561#h2-1</a></p>
+
+            <hr>
+          </div>
+          <br>
+          <div>
+            <p>
+            
+              
+              <span>
+                <i class="iconfont icon-tag"></i>
+                
+                  <a class="hover-with-bg" href="/tags/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0/">文件上传</a>
+                
+                  <a class="hover-with-bg" href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/">代码审计</a>
+                
+                  <a class="hover-with-bg" href="/tags/ctf/">ctf</a>
+                
+              </span>
+            
+            </p>
+            
+              <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container">
+        <div id="toc">
+  <p class="h5"><i class="far fa-list-alt"></i>&nbsp;目录</p>
+  <div id="tocbot"></div>
+</div>
+      </div>
+    
+  </div>
+</div>
+
+<!-- custom -->
+
+
+<!-- Comments -->
+<div class="col-lg-7 mx-auto nopadding-md">
+  <div class="container comments mx-auto" id="comments">
+    
+  </div>
+</div>
+
+    
+  </main>
+
+  
+    <a class="z-depth-1" id="scroll-top-button" href="#" role="button">
+      <i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><b>Hexo</b></a>
+    <i class="iconfont icon-love"></i>
+    <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"> <b>Fluid</b></a>
+
+    
+  <div>
+    
+      <!-- 不蒜子统计PV -->
+      
+      <span id="busuanzi_container_site_pv" style="display: none">
+      总访问量 <span id="busuanzi_value_site_pv"></span> 次
+    </span>
+    
+    
+      <!-- 不蒜子统计UV -->
+      
+      <span id="busuanzi_container_site_uv" style="display: none">
+      总访客数 <span id="busuanzi_value_site_uv"></span> 人
+    </span>
+    
+  </div>
+
+
+    
+
+    <!-- cnzz Analytics icon -->
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js" ></script>
+<script  src="/js/main.js" ></script>
+
+
+  <script  src="/js/lazyload.js" ></script>
+
+
+
+  
+  <script  src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var navHeight = $('#navbar').height();
+      var toc = $('#toc');
+      var main = $('main');
+      var tocT = navHeight + (toc.offset().top - main.offset().top);
+      var tocLimMin = main.offset().top - navHeight;
+      var tocLimMax = $('#comments').offset().top - navHeight;
+      $(window).scroll(function () {
+        var scroH = document.body.scrollTop + document.documentElement.scrollTop;
+        if (tocLimMin <= scroH && scroH <= tocLimMax) {
+          toc.css({
+            'display': 'block',
+            'position': 'fixed',
+            'top': tocT,
+          });
+        } else if (scroH <= tocLimMin) {
+          toc.css({
+            'position': '',
+            'top': '',
+          });
+        } else if (scroH > tocLimMax) {
+          toc.css('display', 'none');
+        }
+      });
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '.post-content',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        scrollSmooth: true,
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc > p').css('visibility', 'visible');
+      }
+    });
+  </script>
+
+
+
+
+
+
+
+  <script defer src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+<!-- Plugins -->
+
+
+
+  <script  src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      $('pre').addClass('prettyprint  linenums');
+      prettyPrint();
+    })
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "代码审计_文件上传ctf题&nbsp;",
+      ],
+      cursorChar: "🐶",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
+    anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      getSearchFile(path);
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <script>
+    $("#post img:not(.no-zoom img, img[no-zoom])").each(
+      function () {
+        var element = document.createElement("a");
+        $(element).attr("data-fancybox", "images");
+        $(element).attr("href", $(this).attr("src"));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

