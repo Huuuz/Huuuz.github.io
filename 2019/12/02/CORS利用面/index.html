@@ -16,7 +16,7 @@
   <meta name="description" content="">
   <meta name="author" content="John Doe">
   <meta name="keywords" content="">
-  <title>CORF利用面 - blog</title>
+  <title>CORS利用面 - blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
 <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
@@ -168,7 +168,7 @@
         <div class="post-content mx-auto" id="post">
           
           <div class="markdown-body">
-            <h2 id="CORF"><a href="#CORF" class="headerlink" title="CORF"></a>CORF</h2><p>CORS是一个W3C标准，全称是”跨域资源共享”（Cross-origin resource sharing）。它允许浏览器向跨源(协议 + 域名 + 端口)服务器，发出XMLHttpRequest请求，从而克服了AJAX只能同源使用的限制。</p>
+            <h2 id="CORS"><a href="#CORS" class="headerlink" title="CORS"></a>CORS</h2><p>CORS是一个W3C标准，全称是”跨域资源共享”（Cross-origin resource sharing）。它允许浏览器向跨源(协议 + 域名 + 端口)服务器，发出XMLHttpRequest请求，从而克服了AJAX只能同源使用的限制。</p>
 <p>CORS需要浏览器和服务器同时支持。它的通信过程，都是浏览器自动完成，不需要用户参与。对于开发者来说，CORS通信与同源的AJAX通信没有差别，代码完全一样。浏览器一旦发现AJAX请求跨源，就会自动添加一些附加的头信息，有时还会多出一次附加的请求，但用户不会有感觉。</p>
 <p>因此，实现CORS通信的关键是服务器。只要服务器实现了CORS接口，就可以跨源通信。</p>
 <p> http响应头</p>
@@ -191,7 +191,7 @@
 <p>HTTP/1.0 200 OK<br>Access-Control-Allow-Origin: attackervuln.com<br>Access-Control-Allow-Credentials: true  </p>
 </blockquote>
 <p>我们创建一个attackervuln.com域就能进行攻击。</p>
-<h3 id="4-利用xss"><a href="#4-利用xss" class="headerlink" title="4.利用xss"></a>4.利用xss</h3><p>如果corf做白名单限制，如果能在白名单域或其中的一个子域找到xss，就能利用。</p>
+<h3 id="4-利用xss"><a href="#4-利用xss" class="headerlink" title="4.利用xss"></a>4.利用xss</h3><p>如果cors做白名单限制，如果能在白名单域或其中的一个子域找到xss，就能利用。</p>
 <p>xss payload</p>
 <pre><code>&lt;script&gt;
 function cors() {  
@@ -219,7 +219,7 @@ cors();
               <span>
                 <i class="iconfont icon-tag"></i>
                 
-                  <a class="hover-with-bg" href="/tags/corf/">corf</a>
+                  <a class="hover-with-bg" href="/tags/cors/">cors</a>
                 
               </span>
             
@@ -421,7 +421,7 @@ cors();
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "CORF利用面&nbsp;",
+        "CORS利用面&nbsp;",
       ],
       cursorChar: "🐶",
       typeSpeed: 70,
